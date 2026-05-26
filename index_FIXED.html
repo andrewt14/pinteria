@@ -1,0 +1,1504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Pinteria — Beer Expert & Game</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600;700&family=Fredoka+One&display=swap" rel="stylesheet">
+<style>
+:root {
+  --amber:#D4700A; --amber-lt:#F5A833; --amber-glow:#FFD580; --amber-dk:#8B4500;
+  --cream:#FFF8EC; --cream-md:#FDECC8; --foam:#FFF3D0;
+  --hop:#4A7C3F; --hop-lt:#C8E6C2; --hop-dk:#2D5028;
+  --stout:#1A0A02; --stout-md:#2D1508; --stout-lt:#5C3D1E;
+  --sky:#1E6FA8; --sky-lt:#93C9E8;
+  --gold:#F0C040; --white:#FFFFFF;
+  --bg:#0E0702; --panel:#1C0F05; --panel-lt:#281508; --panel-md:#321C0A;
+  --border:rgba(212,112,10,0.18); --border-lt:rgba(212,112,10,0.08);
+  --text:rgba(255,248,236,0.88); --text-dim:rgba(255,248,236,0.45); --text-bright:#FFF8EC;
+  --r:14px; --r-sm:8px; --r-lg:20px;
+  --chat-user:#B05A00; --chat-ai:#1C3020;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overflow:hidden;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);display:flex;flex-direction:column;}
+
+/* ══ GRAIN OVERLAY ══ */
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");pointer-events:none;z-index:1000;opacity:.6;}
+
+/* ══ TITLE SCREEN ══ */
+#title{position:fixed;inset:0;z-index:500;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(ellipse 80% 60% at 50% 60%,#2a1105 0%,#0E0702 100%);overflow:hidden;}
+#title-canvas{position:absolute;inset:0;}
+.title-content{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;gap:.6rem;}
+.title-badge{background:linear-gradient(135deg,rgba(212,112,10,.15),rgba(212,112,10,.05));border:1px solid rgba(212,112,10,.3);border-radius:50px;padding:.35rem 1.2rem;font-size:.7rem;letter-spacing:3px;text-transform:uppercase;color:var(--amber-lt);font-weight:600;margin-bottom:.5rem;}
+.title-icon{font-size:clamp(3.5rem,8vw,5.5rem);animation:iconBob 2.5s ease-in-out infinite;filter:drop-shadow(0 0 30px rgba(212,112,10,0.5));}
+@keyframes iconBob{0%,100%{transform:translateY(0) rotate(-3deg);}50%{transform:translateY(-12px) rotate(3deg);}}
+.title-name{font-family:'Playfair Display',serif;font-size:clamp(4rem,10vw,7.5rem);font-weight:900;background:linear-gradient(135deg,#F5A833,#D4700A,#FFD580,#D4700A);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1;letter-spacing:2px;animation:titleShimmer 4s ease-in-out infinite;}
+@keyframes titleShimmer{0%,100%{filter:brightness(1);}50%{filter:brightness(1.15);}}
+.title-tagline{font-size:.95rem;color:var(--text-dim);letter-spacing:3px;text-transform:uppercase;font-weight:300;}
+.title-divider{width:60px;height:1px;background:linear-gradient(90deg,transparent,var(--amber),transparent);margin:.8rem 0;}
+.title-desc{font-size:.9rem;color:var(--text-dim);text-align:center;max-width:320px;line-height:1.7;font-weight:300;}
+.title-btns{display:flex;gap:.8rem;margin-top:1.5rem;flex-wrap:wrap;justify-content:center;}
+.t-btn{font-family:'Fredoka One',cursive;font-size:1rem;letter-spacing:1.5px;padding:.85rem 2rem;border:none;border-radius:50px;cursor:pointer;transition:all .25s;position:relative;overflow:hidden;}
+.t-btn::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.15),transparent);pointer-events:none;}
+.t-btn-primary{background:linear-gradient(135deg,var(--amber),var(--amber-lt));color:var(--stout);box-shadow:0 6px 40px rgba(212,112,10,.45);}
+.t-btn-primary:hover{transform:translateY(-2px) scale(1.04);box-shadow:0 10px 50px rgba(212,112,10,.6);}
+.t-btn-secondary{background:rgba(255,255,255,.05);color:var(--cream-md);border:1px solid rgba(255,255,255,.15);}
+.t-btn-secondary:hover{background:rgba(255,255,255,.1);transform:translateY(-2px);}
+
+/* ══ APP SHELL ══ */
+#app{display:none;flex-direction:column;height:100vh;}
+
+/* ══ TOP NAV ══ */
+#topnav{display:flex;align-items:center;gap:0;background:linear-gradient(90deg,#160a02,#1c1004,#160a02);border-bottom:1px solid var(--border);flex-shrink:0;position:relative;z-index:50;}
+#topnav::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--amber),transparent);opacity:.4;}
+.nav-logo{font-family:'Playfair Display',serif;font-size:1.3rem;font-weight:900;background:linear-gradient(135deg,var(--amber-lt),var(--amber));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;padding:.7rem 1.2rem;letter-spacing:1px;}
+.nav-tabs{display:flex;flex:1;height:100%;}
+.nav-tab{flex:1;display:flex;align-items:center;justify-content:center;gap:.4rem;padding:.7rem .5rem;font-size:.78rem;font-weight:600;letter-spacing:.5px;color:var(--text-dim);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;text-transform:uppercase;position:relative;}
+.nav-tab:hover{color:var(--text);background:rgba(255,255,255,.03);}
+.nav-tab.active{color:var(--amber-lt);border-bottom-color:var(--amber-lt);}
+.nav-tab .tab-dot{width:6px;height:6px;border-radius:50%;background:var(--hop);opacity:0;transition:opacity .2s;}
+.nav-tab.active .tab-dot{opacity:1;}
+.nav-hud{display:flex;align-items:center;gap:.6rem;padding:.5rem .8rem;border-left:1px solid var(--border);}
+.hud-pill{display:flex;align-items:center;gap:.3rem;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:50px;padding:.25rem .7rem;font-size:.78rem;font-weight:700;}
+.hud-coin{color:var(--gold);}
+.hud-rep-wrap{display:flex;align-items:center;gap:.4rem;}
+#rep-track{width:55px;height:5px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden;}
+#rep-fill{height:100%;background:linear-gradient(90deg,var(--hop),var(--amber-lt));border-radius:3px;transition:width .8s;}
+#audio-btn{background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:8px;padding:.28rem .55rem;color:var(--text-dim);cursor:pointer;font-size:.78rem;transition:all .2s;}
+#audio-btn:hover{border-color:var(--amber);color:var(--amber);}
+
+/* ══ PAGES ══ */
+.page{display:none;flex:1;overflow:hidden;}
+.page.active{display:flex;}
+
+/* ══════════════════════════════════
+   AI CHAT PAGE
+══════════════════════════════════ */
+#page-chat{flex-direction:column;background:var(--bg);}
+.chat-header{padding:1rem 1.2rem .8rem;border-bottom:1px solid var(--border-lt);flex-shrink:0;background:linear-gradient(180deg,var(--panel),transparent);}
+.chat-header-inner{display:flex;align-items:center;gap:.8rem;}
+.ai-avatar{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--amber-dk),var(--amber));display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;box-shadow:0 0 20px rgba(212,112,10,.3);}
+.ai-info{}
+.ai-name{font-family:'Playfair Display',serif;font-size:1rem;font-weight:700;color:var(--amber-lt);}
+.ai-status{font-size:.7rem;color:var(--hop-lt);display:flex;align-items:center;gap:.3rem;}
+.ai-dot{width:6px;height:6px;border-radius:50%;background:var(--hop);animation:pulse 2s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+.chat-chips{display:flex;gap:.5rem;padding:.6rem 1rem;overflow-x:auto;flex-shrink:0;scrollbar-width:none;}
+.chat-chips::-webkit-scrollbar{display:none;}
+.chip{white-space:nowrap;padding:.35rem .85rem;background:rgba(212,112,10,.1);border:1px solid rgba(212,112,10,.2);border-radius:50px;font-size:.72rem;color:var(--amber-lt);cursor:pointer;transition:all .2s;font-weight:600;flex-shrink:0;}
+.chip:hover{background:rgba(212,112,10,.2);border-color:var(--amber-lt);}
+#chat-messages{flex:1;overflow-y:auto;padding:1rem;display:flex;flex-direction:column;gap:.8rem;scroll-behavior:smooth;}
+#chat-messages::-webkit-scrollbar{width:3px;}
+#chat-messages::-webkit-scrollbar-thumb{background:rgba(212,112,10,.2);border-radius:2px;}
+.msg{display:flex;gap:.6rem;max-width:88%;animation:msgIn .3s ease;}
+@keyframes msgIn{from{transform:translateY(8px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+.msg.user{align-self:flex-end;flex-direction:row-reverse;}
+.msg.ai{align-self:flex-start;}
+.msg-avatar{width:30px;height:30px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.9rem;margin-top:2px;}
+.msg.ai .msg-avatar{background:linear-gradient(135deg,var(--amber-dk),var(--amber));box-shadow:0 2px 12px rgba(212,112,10,.3);}
+.msg.user .msg-avatar{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);}
+.msg-bubble{padding:.7rem 1rem;border-radius:16px;font-size:.85rem;line-height:1.65;font-weight:400;}
+.msg.ai .msg-bubble{background:linear-gradient(135deg,var(--panel-lt),var(--panel-md));border:1px solid var(--border);border-radius:4px 16px 16px 16px;color:var(--text);}
+.msg.user .msg-bubble{background:linear-gradient(135deg,var(--amber-dk),var(--amber));color:white;border-radius:16px 4px 16px 16px;}
+.msg-bubble strong{color:var(--amber-lt);font-weight:700;}
+.msg-bubble em{color:var(--hop-lt);font-style:italic;}
+.msg-time{font-size:.6rem;color:var(--text-dim);margin-top:.3rem;padding:0 .2rem;}
+.typing-indicator{display:flex;gap:4px;align-items:center;padding:.5rem .7rem;}
+.typing-dot{width:7px;height:7px;border-radius:50%;background:var(--amber-lt);animation:typingBounce 1.2s ease-in-out infinite;}
+.typing-dot:nth-child(2){animation-delay:.2s;}
+.typing-dot:nth-child(3){animation-delay:.4s;}
+@keyframes typingBounce{0%,80%,100%{transform:translateY(0);}40%{transform:translateY(-8px);}}
+.chat-input-area{display:flex;gap:.6rem;padding:.8rem 1rem;border-top:1px solid var(--border-lt);background:linear-gradient(0deg,var(--panel),transparent);flex-shrink:0;align-items:flex-end;}
+#chat-input{flex:1;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:var(--r);padding:.65rem 1rem;color:var(--text-bright);font-family:'DM Sans',sans-serif;font-size:.88rem;resize:none;outline:none;transition:border-color .2s;min-height:42px;max-height:120px;line-height:1.5;}
+#chat-input:focus{border-color:rgba(212,112,10,.4);}
+#chat-input::placeholder{color:var(--text-dim);}
+#send-btn{width:42px;height:42px;background:linear-gradient(135deg,var(--amber),var(--amber-lt));border:none;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1rem;transition:all .2s;flex-shrink:0;box-shadow:0 4px 16px rgba(212,112,10,.35);}
+#send-btn:hover{transform:scale(1.1);box-shadow:0 6px 24px rgba(212,112,10,.5);}
+#send-btn:active{transform:scale(.95);}
+
+/* ══════════════════════════════════
+   GAME PAGE
+══════════════════════════════════ */
+#page-game{flex-direction:row;overflow:hidden;}
+
+/* Customer sidebar */
+#cust-sidebar{width:185px;flex-shrink:0;background:linear-gradient(180deg,var(--panel),var(--stout-md));border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
+.sidebar-head{padding:.8rem;border-bottom:1px solid var(--border-lt);}
+.sidebar-label{font-size:.65rem;text-transform:uppercase;letter-spacing:2px;color:var(--amber);font-weight:700;}
+#cust-list{flex:1;overflow-y:auto;padding:.6rem;display:flex;flex-direction:column;gap:.5rem;}
+#cust-list::-webkit-scrollbar{width:2px;}
+#cust-list::-webkit-scrollbar-thumb{background:rgba(212,112,10,.2);}
+.cust-card{background:var(--panel-lt);border:1px solid var(--border-lt);border-radius:var(--r);padding:.65rem;cursor:pointer;transition:all .2s;position:relative;overflow:hidden;}
+.cust-card::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(212,112,10,.06),transparent);opacity:0;transition:opacity .2s;}
+.cust-card:hover{border-color:var(--border);transform:translateX(3px);}
+.cust-card:hover::before,.cust-card.active::before{opacity:1;}
+.cust-card.active{border-color:rgba(212,112,10,.5);box-shadow:0 0 20px rgba(212,112,10,.15);}
+.cust-card.done{opacity:.3;pointer-events:none;}
+.cc-canvas{display:block;margin:0 auto;}
+.cc-name{font-weight:700;font-size:.78rem;text-align:center;margin-top:.3rem;color:var(--text-bright);}
+.cc-type{font-size:.6rem;color:var(--amber-lt);text-transform:uppercase;letter-spacing:.8px;text-align:center;font-weight:600;}
+.pat-wrap{margin-top:.4rem;height:3px;background:rgba(255,255,255,.06);border-radius:2px;overflow:hidden;}
+.pat-bar{height:100%;border-radius:2px;transition:width .5s linear,background .3s;}
+.cc-score{font-size:.7rem;text-align:center;margin-top:3px;color:var(--amber-lt);}
+
+/* Station area */
+#station-area{flex:1;display:flex;flex-direction:column;overflow:hidden;background:linear-gradient(180deg,var(--stout-md),var(--bg));}
+#station-tabs{display:flex;background:rgba(0,0,0,.3);border-bottom:1px solid var(--border-lt);flex-shrink:0;}
+.stab{flex:1;padding:.6rem .3rem;text-align:center;cursor:pointer;font-size:.72rem;font-weight:700;color:var(--text-dim);border-bottom:2px solid transparent;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:.3rem;letter-spacing:.3px;text-transform:uppercase;}
+.stab:hover{color:var(--text);background:rgba(255,255,255,.02);}
+.stab.active{color:var(--amber-lt);border-bottom-color:var(--amber-lt);background:rgba(212,112,10,.04);}
+#scontent{flex:1;overflow-y:auto;padding:1rem;}
+#scontent::-webkit-scrollbar{width:3px;}
+#scontent::-webkit-scrollbar-thumb{background:rgba(212,112,10,.15);border-radius:2px;}
+
+/* Order attrs */
+.order-grid{display:grid;grid-template-columns:1fr 1fr;gap:.55rem;margin:.7rem 0;}
+.oattr{background:rgba(255,255,255,.03);border:1px solid var(--border-lt);border-radius:var(--r-sm);padding:.65rem;transition:border-color .2s;cursor:default;}
+.oattr:hover{border-color:var(--border);}
+.oattr-lbl{font-size:.58rem;text-transform:uppercase;letter-spacing:1px;color:var(--amber);font-weight:700;}
+.oattr-ico{font-size:1.2rem;margin:.2rem 0;}
+.oattr-val{font-weight:800;font-size:.92rem;color:var(--text-bright);}
+.cust-intro{display:flex;align-items:center;gap:.75rem;background:rgba(255,255,255,.03);border:1px solid var(--border-lt);border-radius:var(--r);padding:.85rem;margin-bottom:.6rem;}
+.intro-quote{font-size:.75rem;color:var(--text-dim);font-style:italic;margin-top:.2rem;line-height:1.5;}
+.intro-name{font-weight:800;font-size:.9rem;color:var(--text-bright);}
+.intro-type{font-size:.62rem;color:var(--amber-lt);text-transform:uppercase;letter-spacing:1px;font-weight:700;}
+
+/* Brew */
+.brew-grid{display:grid;grid-template-columns:1fr 1fr;gap:.7rem;}
+.bsec{background:rgba(255,255,255,.03);border:1px solid var(--border-lt);border-radius:var(--r);padding:.85rem;}
+.bsec-title{font-size:.75rem;font-weight:800;color:var(--hop-lt);margin-bottom:.5rem;text-transform:uppercase;letter-spacing:.5px;}
+.ing-grid{display:grid;grid-template-columns:1fr 1fr;gap:.3rem;}
+.ing{padding:.42rem .3rem;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:var(--r-sm);cursor:pointer;font-size:.65rem;color:var(--text-dim);text-align:center;transition:all .15s;font-weight:700;}
+.ing:hover{border-color:var(--amber);color:var(--text);}
+.ing.sel{background:linear-gradient(135deg,rgba(212,112,10,.35),rgba(245,168,51,.15));color:var(--text-bright);border-color:var(--amber-lt);}
+.ing-ico{font-size:.95rem;display:block;margin-bottom:2px;}
+.timer-wrap{position:relative;height:50px;background:rgba(0,0,0,.5);border-radius:var(--r-sm);overflow:hidden;margin-top:.6rem;cursor:pointer;border:1px solid rgba(255,255,255,.06);}
+.tz{position:absolute;top:0;bottom:0;}
+.tz-bad{background:rgba(192,57,43,.18);}
+.tz-ok{background:rgba(241,196,15,.18);}
+.tz-perf{background:rgba(74,124,63,.35);box-shadow:inset 0 0 12px rgba(74,124,63,.2);}
+.t-needle{position:absolute;top:3px;bottom:3px;width:3px;background:white;border-radius:2px;box-shadow:0 0 10px white,0 0 20px rgba(255,255,255,.4);}
+.t-lbl{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Fredoka One',cursive;font-size:.9rem;color:white;pointer-events:none;text-shadow:0 1px 6px rgba(0,0,0,.9);}
+.inst{font-size:.68rem;color:var(--text-dim);font-style:italic;margin:.25rem 0;}
+.checklist{display:flex;gap:.35rem;flex-wrap:wrap;margin:.6rem 0;}
+.ck{display:inline-flex;align-items:center;gap:.25rem;padding:.22rem .55rem;border-radius:50px;font-size:.62rem;font-weight:800;letter-spacing:.3px;}
+.ck-req{background:rgba(212,112,10,.1);color:var(--amber-lt);}
+.ck-ok{background:rgba(74,124,63,.2);color:#8EDE8A;}
+.ck-bad{background:rgba(192,57,43,.15);color:#F08878;}
+
+/* Pour */
+.pour-wrap{display:flex;gap:1rem;align-items:flex-start;}
+.glass-list{display:flex;flex-direction:column;gap:.35rem;flex-shrink:0;}
+.gl-btn{padding:.45rem .55rem;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:var(--r-sm);cursor:pointer;font-size:.62rem;color:var(--text-dim);text-align:center;transition:all .15s;font-weight:700;min-width:60px;}
+.gl-btn:hover{border-color:var(--amber);}
+.gl-btn.sel{background:rgba(212,112,10,.2);border-color:var(--amber-lt);color:var(--text-bright);}
+.gl-ico{font-size:1.1rem;display:block;margin-bottom:2px;}
+.pour-center{flex:1;display:flex;flex-direction:column;align-items:center;gap:.55rem;}
+.pour-btn{font-family:'Fredoka One',cursive;font-size:.95rem;padding:.65rem 1.8rem;background:linear-gradient(135deg,var(--sky),#1560a0);color:white;border:none;border-radius:50px;cursor:pointer;box-shadow:0 4px 20px rgba(46,134,193,.35);transition:all .15s;letter-spacing:1px;}
+.pour-btn:hover:not(:disabled){transform:scale(1.05);}
+.pour-btn:active:not(:disabled){transform:scale(.97);}
+.pour-btn:disabled{opacity:.35;cursor:not-allowed;}
+.pour-fb{font-family:'Fredoka One',cursive;font-size:.95rem;text-align:center;min-height:1.3rem;}
+.fill-ind{font-size:.68rem;color:var(--text-dim);text-align:center;}
+
+/* Serve */
+.garn-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.45rem;margin-bottom:.7rem;}
+.garn-btn{padding:.55rem .3rem;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:var(--r-sm);cursor:pointer;text-align:center;transition:all .15s;font-size:.62rem;color:var(--text-dim);font-weight:700;}
+.garn-btn:hover{border-color:var(--amber);}
+.garn-btn.sel{background:rgba(212,112,10,.2);border-color:var(--amber-lt);color:var(--text-bright);}
+.garn-ico{font-size:1.1rem;display:block;margin-bottom:2px;}
+.serve-prev{background:rgba(255,255,255,.03);border:1px solid var(--border-lt);border-radius:var(--r);padding:1rem;margin-bottom:.7rem;display:flex;align-items:center;gap:.8rem;}
+.btn-serve{font-family:'Fredoka One',cursive;font-size:1.05rem;padding:.8rem;background:linear-gradient(135deg,var(--hop-dk),var(--hop));color:white;border:none;border-radius:var(--r);cursor:pointer;box-shadow:0 4px 20px rgba(74,124,63,.35);transition:all .2s;width:100%;letter-spacing:1px;}
+.btn-serve:hover:not(:disabled){transform:scale(1.02);box-shadow:0 6px 28px rgba(74,124,63,.5);}
+.btn-serve:disabled{opacity:.3;cursor:not-allowed;transform:none;}
+.act-row{display:flex;gap:.55rem;margin-top:.7rem;}
+.btn-p{flex:1;font-family:'Fredoka One',cursive;font-size:.88rem;padding:.7rem;background:linear-gradient(135deg,var(--amber-dk),var(--amber));color:var(--stout);border:none;border-radius:var(--r);cursor:pointer;transition:all .2s;letter-spacing:.5px;font-weight:700;}
+.btn-p:hover:not(:disabled){transform:scale(1.03);}
+.btn-p:disabled{opacity:.28;cursor:not-allowed;transform:none;}
+.no-cust{text-align:center;padding:3rem 1rem;color:var(--text-dim);font-style:italic;font-size:.9rem;}
+
+/* ══ MODALS ══ */
+.modal-bg{display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.82);backdrop-filter:blur(8px);align-items:center;justify-content:center;}
+.modal-bg.show{display:flex;}
+.modal-card{background:linear-gradient(160deg,var(--panel-lt),var(--panel-md));border:1px solid rgba(212,112,10,.35);border-radius:var(--r-lg);padding:1.8rem;box-shadow:0 24px 80px rgba(0,0,0,.7),0 0 60px rgba(212,112,10,.08);animation:mIn .4s cubic-bezier(.34,1.56,.64,1);}
+@keyframes mIn{from{transform:scale(.65) translateY(40px);opacity:0;}to{transform:scale(1) translateY(0);opacity:1;}}
+.sc-card{width:min(380px,90vw);text-align:center;}
+.sc-stars{font-size:2rem;letter-spacing:3px;margin:.4rem 0;}
+.sc-name{font-family:'Playfair Display',serif;font-size:1.4rem;color:var(--amber-lt);margin-bottom:.8rem;}
+.sc-grid{display:grid;grid-template-columns:1fr 1fr;gap:.4rem;margin:.7rem 0;}
+.sc-row{background:rgba(0,0,0,.3);border-radius:var(--r-sm);padding:.5rem;}
+.sc-rl{font-size:.58rem;text-transform:uppercase;letter-spacing:1px;color:var(--amber);font-weight:700;}
+.sc-rv{font-weight:800;font-size:1rem;color:var(--text-bright);}
+.sc-total{font-family:'Fredoka One',cursive;font-size:1.6rem;color:var(--amber-lt);margin:.4rem 0;}
+.sc-msg{font-size:.82rem;color:var(--text-dim);margin-bottom:1rem;font-style:italic;line-height:1.6;}
+.btn-next{font-family:'Fredoka One',cursive;font-size:1rem;padding:.7rem 2rem;background:linear-gradient(135deg,var(--amber),var(--amber-lt));color:var(--stout);border:none;border-radius:50px;cursor:pointer;transition:all .2s;letter-spacing:1px;}
+.btn-next:hover{transform:scale(1.05);}
+.eod-card{width:min(440px,92vw);text-align:center;}
+.eod-title{font-family:'Playfair Display',serif;font-size:1.8rem;color:var(--amber-lt);}
+.eod-sub{font-size:.82rem;color:var(--text-dim);margin:.2rem 0 1.2rem;}
+.eod-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:.55rem;margin-bottom:1.2rem;}
+.eod-stat{background:rgba(0,0,0,.3);border-radius:var(--r-sm);padding:.7rem;}
+.eod-sv{font-family:'Fredoka One',cursive;font-size:1.6rem;color:var(--amber-lt);}
+.eod-sl{font-size:.58rem;text-transform:uppercase;letter-spacing:1px;color:var(--text-dim);margin-top:2px;}
+.eod-unlock{background:rgba(74,124,63,.15);border:1px solid rgba(74,124,63,.3);border-radius:var(--r-sm);padding:.7rem;margin-bottom:1rem;font-size:.8rem;color:var(--hop-lt);display:none;line-height:1.5;}
+
+/* ══ NOTIFS ══ */
+#notifs{position:fixed;top:60px;right:1rem;z-index:400;display:flex;flex-direction:column;gap:.4rem;pointer-events:none;}
+.notif{background:var(--panel-md);border:1px solid rgba(212,112,10,.4);border-radius:var(--r-sm);padding:.5rem .85rem;font-size:.78rem;font-weight:700;animation:nIn .3s ease,nOut .3s ease 2.7s forwards;max-width:220px;box-shadow:0 6px 24px rgba(0,0,0,.5);}
+@keyframes nIn{from{transform:translateX(110%);opacity:0;}to{transform:translateX(0);opacity:1;}}
+@keyframes nOut{to{transform:translateX(110%);opacity:0;}}
+
+/* ══ FINAL POLISH ══ */
+.pour-btn{ position:relative; overflow:hidden; }
+.pour-btn::after{ content:''; position:absolute; inset:0; background:linear-gradient(135deg,rgba(255,255,255,.15),transparent); pointer-events:none; }
+.cust-card{ transition:all .22s cubic-bezier(.34,1.4,.64,1); }
+.stab{ transition:all .18s ease; }
+.ing{ transition:all .12s ease; }
+.oattr{ transition:border-color .2s, transform .15s; }
+.oattr:hover{ transform:scale(1.02); }
+/* Smooth page transitions */
+.page{ transition:opacity .2s ease; opacity:0; }
+.page.active{ opacity:1; }
+/* Better scrollbar */
+*::-webkit-scrollbar{ width:3px; height:3px; }
+*::-webkit-scrollbar-track{ background:transparent; }
+*::-webkit-scrollbar-thumb{ background:rgba(212,112,10,.25); border-radius:4px; }
+/* Volume slider styling */
+input[type=range]{ -webkit-appearance:none; appearance:none; background:rgba(255,255,255,.1); border-radius:4px; outline:none; }
+input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; width:10px; height:10px; border-radius:50%; background:var(--amber-lt); cursor:pointer; }
+/* Pulse animation for serve button */
+@keyframes servePulse{ 0%,100%{ box-shadow:0 4px 20px rgba(74,124,63,.35); } 50%{ box-shadow:0 4px 30px rgba(74,124,63,.6),0 0 0 4px rgba(74,124,63,.15); } }
+.btn-serve:not(:disabled){ animation:servePulse 2s ease-in-out infinite; }
+
+/* ══ ABOUT PAGE ══ */
+#page-about{flex-direction:column;overflow-y:auto;background:var(--bg);}
+.about-hero{padding:2rem 1.5rem;text-align:center;border-bottom:1px solid var(--border-lt);}
+.about-hero-icon{font-size:3.5rem;animation:iconBob 3s ease-in-out infinite;}
+.about-title{font-family:'Playfair Display',serif;font-size:2rem;font-weight:900;background:linear-gradient(135deg,var(--amber-lt),var(--amber));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin:.5rem 0;}
+.about-sub{color:var(--text-dim);font-size:.88rem;line-height:1.7;max-width:400px;margin:0 auto;}
+.about-section{padding:1.2rem 1.5rem;border-bottom:1px solid var(--border-lt);}
+.about-section-title{font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--amber-lt);margin-bottom:.8rem;}
+.feature-grid{display:grid;grid-template-columns:1fr 1fr;gap:.7rem;}
+.feature-card{background:rgba(255,255,255,.03);border:1px solid var(--border-lt);border-radius:var(--r);padding:.9rem;}
+.feature-icon{font-size:1.5rem;margin-bottom:.4rem;}
+.feature-title{font-weight:800;font-size:.82rem;color:var(--text-bright);margin-bottom:.3rem;}
+.feature-desc{font-size:.72rem;color:var(--text-dim);line-height:1.6;}
+</style>
+</head>
+<body>
+
+<!-- ══ TITLE SCREEN ══ -->
+<div id="title">
+  <canvas id="title-canvas"></canvas>
+  <div class="title-content">
+    <div class="title-badge">🍺 Craft Beer Experience</div>
+    <div class="title-icon">🍺</div>
+    <div class="title-name">PINTERIA</div>
+    <div class="title-tagline">Pour · Craft · Explore</div>
+    <div class="title-divider"></div>
+    <div class="title-desc">A master cicerone in your pocket — plus the ultimate beer crafting game.</div>
+    <div class="title-btns">
+      <button class="t-btn t-btn-primary" onclick="launchApp('chat')">🤖 Ask the Expert</button>
+      <button class="t-btn t-btn-secondary" onclick="launchApp('game')">🎮 Play the Game</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ APP ══ -->
+<div id="app">
+  <!-- TOP NAV -->
+  <div id="topnav">
+    <div class="nav-logo">🍺 Pinteria <span id="music-note" style="font-size:.7rem;opacity:0;transition:opacity .5s;color:var(--amber-lt)">♪</span></div>
+    <div class="nav-tabs">
+      <div class="nav-tab active" id="ntab-chat" onclick="showPage('chat')">
+        <span>🤖</span><span>Expert AI</span><div class="tab-dot"></div>
+      </div>
+      <div class="nav-tab" id="ntab-game" onclick="showPage('game')">
+        <span>🎮</span><span>Game</span><div class="tab-dot"></div>
+      </div>
+      <div class="nav-tab" id="ntab-about" onclick="showPage('about')">
+        <span>ℹ️</span><span>About</span><div class="tab-dot"></div>
+      </div>
+    </div>
+    <div class="nav-hud">
+      <div class="hud-pill hud-coin">💰 <span id="hud-coins">50</span></div>
+      <div class="hud-pill hud-rep-wrap">⭐ <div id="rep-track"><div id="rep-fill" style="width:0%"></div></div> <span id="hud-rep">0</span></div>
+      <div style="display:flex;align-items:center;gap:.4rem">
+        <button id="audio-btn" onclick="toggleAudio()" title="Toggle Music">🎵</button>
+        <input type="range" id="vol-slider" min="0" max="100" value="72"
+          oninput="setVolume(this.value)"
+          style="width:52px;height:3px;accent-color:var(--amber);cursor:pointer;opacity:.7">
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ CHAT PAGE ══ -->
+  <div class="page active" id="page-chat">
+    <div id="page-chat" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
+      <div class="chat-header">
+        <div class="chat-header-inner">
+          <div class="ai-avatar">🍺</div>
+          <div class="ai-info">
+            <div class="ai-name">Cecil — Master Cicerone</div>
+            <div class="ai-status"><div class="ai-dot"></div> Expert in Beer, Whisky, Wine & Spirits</div>
+          </div>
+        </div>
+      </div>
+      <div class="chat-chips" id="chat-chips">
+        <div class="chip" onclick="askChip('What makes a great IPA?')">🍋 IPA Guide</div>
+        <div class="chip" onclick="askChip('Explain beer styles to a beginner')">🌾 Beer 101</div>
+        <div class="chip" onclick="askChip('What food pairs best with a stout?')">🍽️ Food Pairing</div>
+        <div class="chip" onclick="askChip('Tell me about single malt Scotch whisky')">🥃 Scotch Whisky</div>
+        <div class="chip" onclick="askChip('What is the Reinheitsgebot?')">📜 Brewing Laws</div>
+        <div class="chip" onclick="askChip('How do hops affect beer flavour?')">🌿 Hops Deep Dive</div>
+        <div class="chip" onclick="askChip('Best craft beers to try in 2024?')">✨ Recommendations</div>
+        <div class="chip" onclick="askChip('Explain natural wine vs conventional wine')">🍷 Wine Expert</div>
+        <div class="chip" onclick="askChip('What is the difference between bourbon and rye whiskey?')">🥃 Whiskey 101</div>
+        <div class="chip" onclick="askChip('How is tequila made?')">🌵 Tequila</div>
+      </div>
+      <div id="chat-messages">
+        <div class="msg ai">
+          <div class="msg-avatar">🍺</div>
+          <div>
+            <div class="msg-bubble">
+              Welcome to <strong>Pinteria</strong>! I'm <strong>Cecil</strong>, your personal Master Cicerone and spirits expert. 🍺<br><br>
+              I can answer anything about <em>beer styles, brewing, hops, malts, food pairing, whisky, wine, cocktails, distillation</em> — you name it. I have over 30 years of knowledge in my barrel.<br><br>
+              What would you like to know?
+            </div>
+            <div class="msg-time">Just now</div>
+          </div>
+        </div>
+      </div>
+      <div class="chat-input-area">
+        <textarea id="chat-input" placeholder="Ask anything about beer, whisky, wine, spirits..." rows="1" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+        <button id="send-btn" onclick="sendMessage()">➤</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ GAME PAGE ══ -->
+  <div class="page" id="page-game">
+    <div id="cust-sidebar">
+      <div class="sidebar-head"><div class="sidebar-label">👥 Customers</div></div>
+      <div id="cust-list"></div>
+    </div>
+    <div id="station-area">
+      <div id="station-tabs">
+        <div class="stab active" id="stab-order" onclick="switchStation('order')">📋 Order</div>
+        <div class="stab" id="stab-brew" onclick="switchStation('brew')">🍵 Brew</div>
+        <div class="stab" id="stab-pour" onclick="switchStation('pour')">🍺 Pour</div>
+        <div class="stab" id="stab-serve" onclick="switchStation('serve')">⭐ Serve</div>
+      </div>
+      <div id="scontent"></div>
+    </div>
+  </div>
+
+  <!-- ══ ABOUT PAGE ══ -->
+  <div class="page" id="page-about">
+    <div style="flex:1;overflow-y:auto;">
+      <div class="about-hero">
+        <div class="about-hero-icon">🍺</div>
+        <div class="about-title">Pinteria</div>
+        <div class="about-sub">Your complete craft beer companion — a world-class AI beer expert and a fun brewing simulation game, all in one beautiful app.</div>
+      </div>
+      <div class="about-section">
+        <div class="about-section-title">What's Inside</div>
+        <div class="feature-grid">
+          <div class="feature-card"><div class="feature-icon">🤖</div><div class="feature-title">AI Beer Expert</div><div class="feature-desc">Cecil, your Master Cicerone, answers anything about beer, whisky, wine, and spirits with expert-level knowledge.</div></div>
+          <div class="feature-card"><div class="feature-icon">🎮</div><div class="feature-title">Brewing Game</div><div class="feature-desc">Run your own craft beer bar. Take orders, brew, pour, and serve — Papa's Pizzeria meets craft beer.</div></div>
+          <div class="feature-card"><div class="feature-icon">🍺</div><div class="feature-title">12 Beer Styles</div><div class="feature-desc">From lagers to imperial stouts, the game features authentic beer styles with real ingredient knowledge.</div></div>
+          <div class="feature-card"><div class="feature-icon">🎯</div><div class="feature-title">Skill-Based</div><div class="feature-desc">Hit the brew timer, nail the pour, match the garnish. Every order tests a different skill.</div></div>
+        </div>
+      </div>
+      <div class="about-section">
+        <div class="about-section-title">Cecil's Expertise</div>
+        <div style="display:flex;flex-wrap:wrap;gap:.4rem">
+          ${['🌾 Beer Styles','🌿 Hops & Malts','🍽️ Food Pairing','🥃 Whisky & Bourbon','🍷 Wine','🌵 Tequila & Mezcal','🫙 Craft Cocktails','📜 Brewing History','🧪 Fermentation Science','🌍 Regional Traditions','⚗️ Distillation','🍾 Champagne & Sparkling'].map(t=>`<span class="chip" style="cursor:default">${t}</span>`).join('')}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SCORE MODAL -->
+<div class="modal-bg" id="score-modal">
+  <div class="modal-card sc-card">
+    <div style="font-size:1.6rem">🍺</div>
+    <div class="sc-name" id="sc-name">Order Complete!</div>
+    <div class="sc-stars" id="sc-stars">⭐⭐⭐⭐⭐</div>
+    <div class="sc-grid">
+      <div class="sc-row"><div class="sc-rl">🍵 Brew</div><div class="sc-rv" id="sc-brew">100%</div></div>
+      <div class="sc-row"><div class="sc-rl">🍺 Pour</div><div class="sc-rv" id="sc-pour">100%</div></div>
+      <div class="sc-row"><div class="sc-rl">🎨 Presentation</div><div class="sc-rv" id="sc-pres">100%</div></div>
+      <div class="sc-row"><div class="sc-rl">⚡ Speed</div><div class="sc-rv" id="sc-speed">100%</div></div>
+    </div>
+    <div class="sc-total" id="sc-total">+💰150</div>
+    <div class="sc-msg" id="sc-msg">"Perfect pint!"</div>
+    <button class="btn-next" onclick="closeScore()">NEXT CUSTOMER →</button>
+  </div>
+</div>
+
+<!-- EOD MODAL -->
+<div class="modal-bg" id="eod-modal">
+  <div class="modal-card eod-card">
+    <div style="font-size:2rem">🌙</div>
+    <div class="eod-title">Shift Over!</div>
+    <div class="eod-sub" id="eod-sub">Day 1 Complete</div>
+    <div class="eod-stats">
+      <div class="eod-stat"><div class="eod-sv" id="eod-served">0</div><div class="eod-sl">Served</div></div>
+      <div class="eod-stat"><div class="eod-sv" id="eod-coins">0</div><div class="eod-sl">Coins</div></div>
+      <div class="eod-stat"><div class="eod-sv" id="eod-stars">0⭐</div><div class="eod-sl">Avg Stars</div></div>
+    </div>
+    <div class="eod-unlock" id="eod-unlock"></div>
+    <button class="btn-next" onclick="nextDay()" style="width:100%">NEXT DAY ☀️</button>
+  </div>
+</div>
+
+<div id="notifs"></div>
+
+<script>
+// ═══════════════════════════════════════
+// TITLE CANVAS
+// ═══════════════════════════════════════
+(function(){
+  const c=document.getElementById('title-canvas');
+  const ctx=c.getContext('2d');
+  c.width=window.innerWidth;c.height=window.innerHeight;
+  const bubbles=Array.from({length:70},()=>({
+    x:Math.random()*c.width,y:c.height+Math.random()*300,
+    r:Math.random()*14+2,speed:Math.random()*0.6+0.15,
+    opacity:Math.random()*0.35+0.08,wobble:Math.random()*Math.PI*2,
+    ws:(Math.random()-.5)*.018
+  }));
+  function draw(){
+    ctx.clearRect(0,0,c.width,c.height);
+    bubbles.forEach(b=>{
+      b.y-=b.speed;b.wobble+=b.ws;b.x+=Math.sin(b.wobble)*.4;
+      if(b.y<-20){b.y=c.height+20;b.x=Math.random()*c.width;}
+      ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,Math.PI*2);
+      ctx.strokeStyle=`rgba(212,112,10,${b.opacity})`;ctx.lineWidth=1.2;ctx.stroke();
+      ctx.beginPath();ctx.arc(b.x-b.r*.3,b.y-b.r*.3,b.r*.22,0,Math.PI*2);
+      ctx.fillStyle=`rgba(255,255,255,${b.opacity*.5})`;ctx.fill();
+    });
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+// ═══════════════════════════════════════
+// AUDIO
+// ═══════════════════════════════════════
+// ═══════════════════════════════════════
+// LOFI JAZZ ENGINE — fully procedural Web Audio API
+// Walking bass + chord stabs + hi-hat + vinyl crackle + muted melody
+// ═══════════════════════════════════════
+let audioCtx=null, audioEnabled=true;
+let masterGain=null, musicGain=null, sfxGain=null;
+let lofiScheduler=null, lofiNextBeat=0, lofiBeat=0;
+let vinylNode=null, vinylGain=null;
+
+// Lofi jazz chord progression — Dm7 | G7 | Cmaj7 | Am7 (ii-V-I-vi in C)
+const CHORDS = [
+  [293.66,369.99,440.00,523.25],   // Dm7:  D4 F#4 A4 C5  (actually Dm7: D F A C)
+  [392.00,493.88,587.33,698.46],   // G7:   G4 B4  D5 F5
+  [261.63,329.63,392.00,493.88],   // Cmaj7:C4 E4  G4 B4
+  [220.00,277.18,329.63,415.30],   // Am7:  A3 C#4 E4 G#4
+];
+// Walking bass notes per chord (root, 5th, octave walk)
+const BASS = [
+  [73.42,110.00,87.31,98.00],   // Dm: D2 A2 F2 G2
+  [98.00,123.47,110.00,130.81], // G:  G2 B2 A2 C3
+  [65.41,98.00,82.41,87.31],   // C:  C2 G2 E2 F2
+  [55.00,82.41,73.42,87.31],   // Am: A1 E2 D2 F2
+];
+
+function initAudio(){
+  try{
+    audioCtx = new(window.AudioContext||window.webkitAudioContext)();
+
+    // Master chain: music → lowpass (lofi warmth) → master out
+    masterGain = audioCtx.createGain();
+    masterGain.gain.value = 0.72;
+    masterGain.connect(audioCtx.destination);
+
+    sfxGain = audioCtx.createGain();
+    sfxGain.gain.value = 1.0;
+    sfxGain.connect(masterGain);
+
+    // Lofi filter — cuts highs for that warm tape feel
+    const lofiFilter = audioCtx.createBiquadFilter();
+    lofiFilter.type = 'lowpass';
+    lofiFilter.frequency.value = 3800;
+    lofiFilter.Q.value = 0.7;
+    lofiFilter.connect(masterGain);
+
+    // Slight saturation via waveshaper
+    const waveShaper = audioCtx.createWaveShaper();
+    waveShaper.curve = makeDistCurve(12);
+    waveShaper.connect(lofiFilter);
+
+    musicGain = audioCtx.createGain();
+    musicGain.gain.value = 0.55;
+    musicGain.connect(waveShaper);
+
+    // Vinyl crackle
+    startVinyl();
+
+    // Start jazz loop
+    lofiNextBeat = audioCtx.currentTime + 0.1;
+    lofiBeat = 0;
+    lofiScheduler = setInterval(scheduleLofi, 100);
+
+  }catch(e){ audioEnabled=false; console.warn('Audio init failed',e); }
+}
+
+function makeDistCurve(amount){
+  const n=256, curve=new Float32Array(n);
+  for(let i=0;i<n;i++){
+    const x=i*2/n-1;
+    curve[i]=((Math.PI+amount)*x)/(Math.PI+amount*Math.abs(x));
+  }
+  return curve;
+}
+
+function startVinyl(){
+  // Continuous vinyl crackle — bandpassed noise with random pops
+  const bufLen = audioCtx.sampleRate * 3;
+  const buf = audioCtx.createBuffer(1, bufLen, audioCtx.sampleRate);
+  const d = buf.getChannelData(0);
+  for(let i=0;i<bufLen;i++){
+    // Base hiss
+    d[i] = (Math.random()*2-1) * 0.018;
+    // Occasional crackle pop
+    if(Math.random() < 0.0003) d[i] += (Math.random()*2-1)*0.35;
+  }
+  vinylGain = audioCtx.createGain();
+  vinylGain.gain.value = audioEnabled ? 0.18 : 0;
+
+  const hpf = audioCtx.createBiquadFilter();
+  hpf.type='bandpass'; hpf.frequency.value=2200; hpf.Q.value=0.5;
+
+  const src = audioCtx.createBufferSource();
+  src.buffer=buf; src.loop=true;
+  src.connect(hpf); hpf.connect(vinylGain); vinylGain.connect(masterGain);
+  src.start();
+  vinylNode=src;
+}
+
+// BPM=78 (classic lofi tempo), 4/4, schedule 1 beat at a time
+const BPM=78, BEAT=60/BPM;
+
+function scheduleLofi(){
+  if(!audioCtx||!audioEnabled) return;
+  while(lofiNextBeat < audioCtx.currentTime + 0.25){
+    const b = lofiBeat % 16; // 4 bars of 4 beats
+    const chord = Math.floor(b/4); // chord changes every bar
+    playBeat(b, chord, lofiNextBeat);
+    lofiNextBeat += BEAT;
+    // Pulse note icon on beat 1
+    if(lofiBeat % 4 === 0){
+      const mn=document.getElementById('music-note');
+      if(mn){mn.style.opacity='1';setTimeout(()=>mn.style.opacity='0',250);}
+    }
+    lofiBeat++;
+  }
+}
+
+function playBeat(beat, chord, t){
+  const bar = beat % 4; // beat within bar (0-3)
+
+  // ── WALKING BASS (every beat, triangle wave, muted feel) ──
+  const bassNote = BASS[chord][bar];
+  playNote('triangle', bassNote, t, BEAT*0.85, 0.38, musicGain, true);
+
+  // ── CHORD STAB (beats 2 & 4 — backbeat feel) ──
+  if(bar===1||bar===3){
+    CHORDS[chord].forEach((freq,i)=>{
+      // slight humanise timing
+      const jitter = (Math.random()-0.5)*0.018;
+      playNote('sawtooth', freq, t+jitter, BEAT*0.35, 0.06-(i*0.01), musicGain, true);
+    });
+  }
+
+  // ── HI-HAT pattern (8ths on beats 0,0.5,1,1.5... but muted on downbeats) ──
+  playHihat(t, bar===0?0.12:0.18);           // on beat
+  playHihat(t + BEAT*0.5, 0.09);             // off beat (quieter)
+
+  // ── KICK (beat 1 of bar, i.e. beat 0) ──
+  if(bar===0) playKick(t);
+
+  // ── SNARE (beat 3 of bar) ──
+  if(bar===2) playSnare(t);
+
+  // ── MUTED PIANO MELODY (sparse, only certain beats) ──
+  const melodyMap = {
+    0:[523.25], 2:[493.88], 4:[440.00], 6:[392.00],
+    8:[349.23], 9:[392.00], 10:[440.00], 14:[493.88]
+  };
+  if(melodyMap[beat]){
+    melodyMap[beat].forEach(freq=>{
+      const jitter=(Math.random()-0.5)*0.025;
+      playNote('sine',freq,t+jitter,BEAT*0.6,0.07,musicGain,true,true);
+    });
+  }
+}
+
+function playNote(type, freq, t, dur, vol, dest, lofi=false, mute=false){
+  const o=audioCtx.createOscillator();
+  const g=audioCtx.createGain();
+  o.type=type;
+  o.frequency.value=freq;
+  // Slight pitch humanise
+  o.detune.value=(Math.random()-0.5)*8;
+
+  if(mute){
+    // Muted piano: sharp attack, fast decay (like plucked/damped string)
+    g.gain.setValueAtTime(0,t);
+    g.gain.linearRampToValueAtTime(vol,t+0.012);
+    g.gain.exponentialRampToValueAtTime(vol*0.3,t+0.08);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+  } else {
+    g.gain.setValueAtTime(0,t);
+    g.gain.linearRampToValueAtTime(vol,t+0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+  }
+
+  if(lofi){
+    // gentle LP on each note for warmth
+    const f=audioCtx.createBiquadFilter();
+    f.type='lowpass'; f.frequency.value=1800;
+    o.connect(f); f.connect(g);
+  } else {
+    o.connect(g);
+  }
+  g.connect(dest||musicGain);
+  o.start(t); o.stop(t+dur+0.05);
+}
+
+function playHihat(t, vol){
+  const bufLen=audioCtx.sampleRate*0.05;
+  const buf=audioCtx.createBuffer(1,bufLen,audioCtx.sampleRate);
+  const d=buf.getChannelData(0);
+  for(let i=0;i<bufLen;i++) d[i]=(Math.random()*2-1);
+  const src=audioCtx.createBufferSource(); src.buffer=buf;
+  const hpf=audioCtx.createBiquadFilter(); hpf.type='highpass'; hpf.frequency.value=8000;
+  const g=audioCtx.createGain();
+  g.gain.setValueAtTime(vol,t);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+0.04);
+  src.connect(hpf); hpf.connect(g); g.connect(musicGain);
+  src.start(t); src.stop(t+0.06);
+}
+
+function playKick(t){
+  const o=audioCtx.createOscillator();
+  const g=audioCtx.createGain();
+  o.type='sine';
+  o.frequency.setValueAtTime(160,t);
+  o.frequency.exponentialRampToValueAtTime(40,t+0.12);
+  g.gain.setValueAtTime(0.55,t);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+0.22);
+  o.connect(g); g.connect(musicGain);
+  o.start(t); o.stop(t+0.25);
+}
+
+function playSnare(t){
+  // Noise burst + tone = snare
+  const bufLen=audioCtx.sampleRate*0.12;
+  const buf=audioCtx.createBuffer(1,bufLen,audioCtx.sampleRate);
+  const d=buf.getChannelData(0);
+  for(let i=0;i<bufLen;i++) d[i]=(Math.random()*2-1)*0.5;
+  const src=audioCtx.createBufferSource(); src.buffer=buf;
+  const g=audioCtx.createGain();
+  g.gain.setValueAtTime(0.22,t);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+0.12);
+  // Tone layer
+  const o=audioCtx.createOscillator();
+  const og=audioCtx.createGain();
+  o.type='triangle'; o.frequency.value=220;
+  og.gain.setValueAtTime(0.08,t);
+  og.gain.exponentialRampToValueAtTime(0.0001,t+0.08);
+  src.connect(g); g.connect(musicGain);
+  o.connect(og); og.connect(musicGain);
+  src.start(t); src.stop(t+0.14);
+  o.start(t); o.stop(t+0.1);
+}
+
+function setVolume(v){
+  const vol = v/100;
+  if(masterGain) masterGain.gain.value = vol;
+  if(vol===0){ audioEnabled=false; document.getElementById('audio-btn').textContent='🔇'; }
+  else { audioEnabled=true; document.getElementById('audio-btn').textContent='🎵'; }
+}
+function toggleAudio(){
+  audioEnabled=!audioEnabled;
+  document.getElementById('audio-btn').textContent=audioEnabled?'🔊':'🔇';
+  if(musicGain) musicGain.gain.value=audioEnabled?0.55:0;
+  if(vinylGain) vinylGain.gain.value=audioEnabled?0.18:0;
+  if(sfxGain)   sfxGain.gain.value=audioEnabled?1.0:0;
+}
+function snd(type){
+  if(!audioCtx||!audioEnabled)return;
+  const ctx=audioCtx,now=ctx.currentTime;
+  const s={
+    pour:()=>{
+      const b=ctx.createBuffer(1,ctx.sampleRate*.7,ctx.sampleRate);
+      const d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*.25;
+      const src=ctx.createBufferSource();src.buffer=b;
+      const f=ctx.createBiquadFilter();f.type='bandpass';f.frequency.value=700;f.Q.value=2;
+      f.frequency.linearRampToValueAtTime(350,now+.7);
+      const g=ctx.createGain();g.gain.setValueAtTime(0,now);g.gain.linearRampToValueAtTime(.35,now+.06);
+      g.gain.linearRampToValueAtTime(0,now+.7);
+      src.connect(f);f.connect(g);g.connect(sfxGain);src.start(now);src.stop(now+.7);
+    },
+    pourStop:()=>{
+      const b=ctx.createBuffer(1,ctx.sampleRate*.35,ctx.sampleRate);
+      const d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*.12;
+      const src=ctx.createBufferSource();src.buffer=b;
+      const f=ctx.createBiquadFilter();f.type='highpass';f.frequency.value=2500;
+      const g=ctx.createGain();g.gain.setValueAtTime(.4,now);g.gain.exponentialRampToValueAtTime(.001,now+.35);
+      src.connect(f);f.connect(g);g.connect(sfxGain);src.start(now);src.stop(now+.35);
+    },
+    coin:()=>[523,659,784,1047].forEach((f,i)=>{
+      const o=ctx.createOscillator(),g=ctx.createGain();o.type='sine';o.frequency.value=f;
+      const t=now+i*.07;g.gain.setValueAtTime(.25,t);g.gain.exponentialRampToValueAtTime(.001,t+.22);
+      o.connect(g);g.connect(sfxGain);o.start(t);o.stop(t+.22);
+    }),
+    star:()=>[392,523,659,784,1047].forEach((f,i)=>{
+      const o=ctx.createOscillator(),g=ctx.createGain();o.type='triangle';o.frequency.value=f;
+      const t=now+i*.09;g.gain.setValueAtTime(.3,t);g.gain.exponentialRampToValueAtTime(.001,t+.35);
+      o.connect(g);g.connect(sfxGain);o.start(t);o.stop(t+.35);
+    }),
+    tap:()=>{
+      const o=ctx.createOscillator(),g=ctx.createGain();o.type='sine';o.frequency.value=320;
+      g.gain.setValueAtTime(.15,now);g.gain.exponentialRampToValueAtTime(.001,now+.1);
+      o.connect(g);g.connect(sfxGain);o.start(now);o.stop(now+.1);
+    },
+    serve:()=>{
+      const o=ctx.createOscillator(),g=ctx.createGain();o.type='sine';o.frequency.value=110;
+      o.frequency.linearRampToValueAtTime(55,now+.18);
+      g.gain.setValueAtTime(.4,now);g.gain.exponentialRampToValueAtTime(.001,now+.25);
+      o.connect(g);g.connect(sfxGain);o.start(now);o.stop(now+.25);
+      [880,1320,1760].forEach((f,i)=>{
+        const o2=ctx.createOscillator(),g2=ctx.createGain();o2.type='sine';o2.frequency.value=f;
+        const t=now+.04+i*.05;g2.gain.setValueAtTime(.12,t);g2.gain.exponentialRampToValueAtTime(.001,t+.28);
+        o2.connect(g2);g2.connect(sfxGain);o2.start(t);o2.stop(t+.28);
+      });
+    },
+    perfect:()=>[523,659,784,1047,1319].forEach((f,i)=>{
+      const o=ctx.createOscillator(),g=ctx.createGain();o.type='triangle';o.frequency.value=f;
+      const t=now+i*.055;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.28,t+.03);
+      g.gain.exponentialRampToValueAtTime(.001,t+.45);
+      o.connect(g);g.connect(sfxGain);o.start(t);o.stop(t+.45);
+    }),
+    angry:()=>{
+      const o=ctx.createOscillator(),g=ctx.createGain();o.type='sawtooth';o.frequency.value=140;
+      g.gain.setValueAtTime(.12,now);g.gain.exponentialRampToValueAtTime(.001,now+.35);
+      o.connect(g);g.connect(sfxGain);o.start(now);o.stop(now+.35);
+    },
+    brewLock:()=>{
+      const o=ctx.createOscillator(),g=ctx.createGain();o.type='square';o.frequency.value=200;
+      o.frequency.linearRampToValueAtTime(420,now+.12);
+      g.gain.setValueAtTime(.12,now);g.gain.exponentialRampToValueAtTime(.001,now+.25);
+      o.connect(g);g.connect(sfxGain);o.start(now);o.stop(now+.25);
+    },
+  };
+  if(s[type])s[type]();
+}
+
+// ═══════════════════════════════════════
+// CHARACTER DRAWING
+// ═══════════════════════════════════════
+const CHARS={
+  margaret:{skin:'#C8956C',hair:'#3D2010',hairStyle:'bun',outfit:'#7B68EE',acc:'#9B88EE',glasses:true,extra:'none'},
+  dave:    {skin:'#8D5524',hair:'#1A0800',hairStyle:'short',outfit:'#4682B4',acc:'#6BA3D4',glasses:false,extra:'cap'},
+  priya:   {skin:'#7B4F2E',hair:'#0A0000',hairStyle:'scarf',outfit:'#E8567A',acc:'#F57A99',glasses:false,extra:'scarf'},
+  gordon:  {skin:'#D4A574',hair:'#1C1008',hairStyle:'side',outfit:'#2C3E50',acc:'#4A6278',glasses:true,extra:'none'},
+  yuki:    {skin:'#F0C8A0',hair:'#0E0800',hairStyle:'straight',outfit:'#E74C3C',acc:'#F08080',glasses:false,extra:'none'},
+};
+function lx(h,a){const r=parseInt(h.slice(1,3),16),g=parseInt(h.slice(3,5),16),b=parseInt(h.slice(5,7),16);return `rgb(${Math.min(255,r+a)},${Math.min(255,g+a)},${Math.min(255,b+a)})`;}
+function dk(h,a){const r=parseInt(h.slice(1,3),16),g=parseInt(h.slice(3,5),16),b=parseInt(h.slice(5,7),16);return `rgb(${Math.max(0,r-a)},${Math.max(0,g-a)},${Math.max(0,b-a)})`;}
+
+function drawChar(canvas,id,mood='idle'){
+  const ctx=canvas.getContext('2d');
+  const s=CHARS[id]||CHARS.margaret;
+  const w=canvas.width,h=canvas.height;
+  ctx.clearRect(0,0,w,h);
+  const cx=w/2,cy=h*.55,sc=w/80;
+
+  // Shadow
+  const sg=ctx.createRadialGradient(cx,h-.5,0,cx,h-.5,20*sc);
+  sg.addColorStop(0,'rgba(0,0,0,.3)');sg.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=sg;ctx.beginPath();ctx.ellipse(cx,h-2,18*sc,4*sc,0,0,Math.PI*2);ctx.fill();
+
+  // Body
+  const bg=ctx.createLinearGradient(cx-18*sc,cy,cx+18*sc,cy+20*sc);
+  bg.addColorStop(0,s.outfit);bg.addColorStop(1,s.acc);
+  ctx.fillStyle=bg;
+  ctx.beginPath();ctx.ellipse(cx,cy+14*sc,18*sc,22*sc,0,0,Math.PI*2);ctx.fill();
+  // Collar
+  ctx.fillStyle=lx(s.outfit,40);
+  ctx.beginPath();ctx.moveTo(cx-5*sc,cy-4*sc);ctx.lineTo(cx,cy+3*sc);ctx.lineTo(cx+5*sc,cy-4*sc);ctx.fill();
+  // Neck
+  ctx.fillStyle=s.skin;ctx.fillRect(cx-4.5*sc,cy-14*sc,9*sc,10*sc);
+  // Head
+  const hg=ctx.createRadialGradient(cx-3*sc,cy-24*sc,1*sc,cx,cy-20*sc,16*sc);
+  hg.addColorStop(0,lx(s.skin,18));hg.addColorStop(1,s.skin);
+  ctx.fillStyle=hg;ctx.beginPath();ctx.ellipse(cx,cy-20*sc,15*sc,17*sc,0,0,Math.PI*2);ctx.fill();
+  // Ears
+  ctx.fillStyle=dk(s.skin,8);
+  ctx.beginPath();ctx.ellipse(cx-15*sc,cy-20*sc,3.5*sc,5*sc,0,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.ellipse(cx+15*sc,cy-20*sc,3.5*sc,5*sc,0,0,Math.PI*2);ctx.fill();
+  // Hair
+  drawHair2(ctx,s,cx,cy,sc);
+  // Eyes
+  const eyeY=cy-23*sc;
+  const blink=mood==='happy'||mood==='excited'?.55:1;
+  [-1,1].forEach(side=>{
+    const ex=cx+side*6*sc;
+    ctx.fillStyle='#fff';ctx.beginPath();ctx.ellipse(ex,eyeY,4*sc,3.8*sc*blink,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#1A0800';ctx.beginPath();ctx.ellipse(ex+side*.4*sc,eyeY,2.3*sc,2.3*sc*blink,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,.8)';ctx.beginPath();ctx.ellipse(ex+side*.8*sc,eyeY-.8*sc,.8*sc,.8*sc,0,0,Math.PI*2);ctx.fill();
+    if(mood==='happy'||mood==='excited'){
+      ctx.strokeStyle=dk(s.skin,10);ctx.lineWidth=1.5*sc;
+      ctx.beginPath();ctx.arc(ex,eyeY,3.5*sc,0,Math.PI);ctx.stroke();
+    }
+  });
+  // Brows
+  const bc=s.hair==='#3D2010'?'#2A1008':s.hair;
+  ctx.strokeStyle=bc;ctx.lineWidth=1.8*sc;ctx.lineCap='round';
+  [-1,1].forEach(side=>{
+    const bx=cx+side*6*sc;
+    const lift=mood==='excited'?-4*sc:mood==='stern'?1.5*sc:-2*sc;
+    const tilt=mood==='stern'?side*1.5*sc:0;
+    ctx.beginPath();ctx.moveTo(bx-4*sc,eyeY-6*sc+lift+tilt);
+    ctx.quadraticCurveTo(bx,eyeY-7.5*sc+lift,bx+4*sc,eyeY-6*sc+lift-tilt);ctx.stroke();
+  });
+  // Nose
+  ctx.strokeStyle=dk(s.skin,22);ctx.lineWidth=1.2*sc;ctx.lineCap='round';
+  ctx.beginPath();ctx.moveTo(cx-2*sc,cy-20*sc);ctx.quadraticCurveTo(cx-4*sc,cy-14*sc,cx,cy-13*sc);
+  ctx.quadraticCurveTo(cx+4*sc,cy-14*sc,cx+2*sc,cy-20*sc);ctx.stroke();
+  // Mouth
+  const my=cy-10*sc;
+  if(mood==='happy'||mood==='excited'||mood==='grin'){
+    ctx.fillStyle='#B03020';ctx.beginPath();
+    ctx.moveTo(cx-6*sc,my);ctx.quadraticCurveTo(cx,my+7*sc,cx+6*sc,my);ctx.fill();
+    ctx.fillStyle='white';ctx.beginPath();ctx.ellipse(cx,my+1.5*sc,4*sc,2.2*sc,0,0,Math.PI);ctx.fill();
+    ctx.strokeStyle=dk(s.skin,30);ctx.lineWidth=1.4*sc;
+    ctx.beginPath();ctx.moveTo(cx-6*sc,my);ctx.quadraticCurveTo(cx,my+7*sc,cx+6*sc,my);ctx.stroke();
+  } else if(mood==='stern'){
+    ctx.strokeStyle=dk(s.skin,30);ctx.lineWidth=1.5*sc;
+    ctx.beginPath();ctx.moveTo(cx-5*sc,my+2*sc);ctx.lineTo(cx+5*sc,my+2*sc);ctx.stroke();
+  } else {
+    ctx.strokeStyle=dk(s.skin,25);ctx.lineWidth=1.4*sc;
+    ctx.beginPath();ctx.moveTo(cx-5*sc,my);ctx.quadraticCurveTo(cx,my+3.5*sc,cx+5*sc,my);ctx.stroke();
+  }
+  // Blush
+  if(mood==='shy'||mood==='excited'){
+    ctx.fillStyle='rgba(255,110,110,.22)';
+    [-1,1].forEach(side=>{ctx.beginPath();ctx.ellipse(cx+side*10*sc,my-2*sc,4*sc,2.5*sc,0,0,Math.PI*2);ctx.fill();});
+  }
+  // Glasses
+  if(s.glasses){
+    ctx.strokeStyle=mood==='stern'?'#1A1A1A':'#333';ctx.lineWidth=1.3*sc;
+    [-1,1].forEach(side=>{ctx.beginPath();ctx.roundRect(cx+side*6*sc-5*sc,eyeY-4*sc,10*sc,7*sc,1.5*sc);ctx.stroke();});
+    ctx.beginPath();ctx.moveTo(cx-5*sc*1+5*sc,eyeY-1.5*sc);ctx.lineTo(cx+6*sc-5*sc,eyeY-1.5*sc);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(cx+11*sc,eyeY-1.5*sc);ctx.lineTo(cx+16*sc,eyeY);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(cx-11*sc,eyeY-1.5*sc);ctx.lineTo(cx-16*sc,eyeY);ctx.stroke();
+  }
+}
+function drawHair2(ctx,s,cx,cy,sc){
+  ctx.fillStyle=s.hair;
+  if(s.hairStyle==='bun'){
+    ctx.beginPath();ctx.ellipse(cx,cy-37*sc,10*sc,8*sc,0,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(cx-14*sc,cy-27*sc,5*sc,10*sc,-.3,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(cx+14*sc,cy-27*sc,5*sc,10*sc,.3,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(cx,cy-34*sc,15*sc,8*sc,0,Math.PI,Math.PI*2);ctx.fill();
+  } else if(s.hairStyle==='short'){
+    ctx.beginPath();ctx.ellipse(cx,cy-33*sc,15*sc,10*sc,0,Math.PI,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(cx-14*sc,cy-26*sc,4*sc,8*sc,-.2,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(cx+14*sc,cy-26*sc,4*sc,8*sc,.2,0,Math.PI*2);ctx.fill();
+  } else if(s.hairStyle==='scarf'){
+    ctx.fillStyle='#E05580';
+    ctx.beginPath();ctx.ellipse(cx,cy-33*sc,16*sc,10*sc,0,Math.PI,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(cx,cy-30*sc,16*sc,6*sc,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=s.hair;
+    ctx.beginPath();ctx.ellipse(cx-14*sc,cy-22*sc,4*sc,10*sc,-.1,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(cx+14*sc,cy-22*sc,4*sc,10*sc,.1,0,Math.PI*2);ctx.fill();
+  } else if(s.hairStyle==='side'){
+    ctx.beginPath();ctx.ellipse(cx-2*sc,cy-33*sc,15*sc,9*sc,-.08,Math.PI,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(cx-14*sc,cy-26*sc,4.5*sc,9*sc,-.3,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(cx+13*sc,cy-27*sc,3.5*sc,7*sc,.1,0,Math.PI*2);ctx.fill();
+  } else {
+    ctx.beginPath();ctx.ellipse(cx,cy-33*sc,15*sc,9*sc,0,Math.PI,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(cx-14*sc,cy-23*sc,4*sc,12*sc,-.1,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(cx+14*sc,cy-23*sc,4*sc,12*sc,.1,0,Math.PI*2);ctx.fill();
+  }
+  if(s.extra==='cap'){
+    ctx.fillStyle='#3A72A4';
+    ctx.beginPath();ctx.ellipse(cx,cy-35*sc,16*sc,5*sc,0,0,Math.PI*2);ctx.fill();
+    ctx.fillRect(cx-14*sc,cy-39*sc,28*sc,8*sc);
+    ctx.beginPath();ctx.ellipse(cx+14*sc,cy-35*sc,8*sc,3*sc,.3,0,Math.PI*2);ctx.fill();
+  }
+}
+
+// ═══════════════════════════════════════
+// POUR CANVAS
+// ═══════════════════════════════════════
+const PW=110,PH=180;
+let pourRAF=null,pourPtcls=[];
+function drawPourFrame(canvas){
+  if(!canvas)return;
+  const ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,PW,PH);
+  const o=G.order;
+  const bc=o?o.style.color:'#D4700A';
+  const fh=Math.round(G.fill*1.6);
+  const fmh=Math.round(G.foam*1.8);
+  const ftargets={none:0,light:8,medium:20,heavy:35};
+  const fmtarget=o?ftargets[o.foam]:20;
+  const fzY=PH-Math.round((fmtarget+15)*1.6);
+  const bx=7,tx=3;
+  const gp=new Path2D();
+  gp.moveTo(bx,PH-3);gp.lineTo(PW-bx,PH-3);gp.lineTo(PW-tx,3);gp.lineTo(tx,3);gp.closePath();
+  ctx.save();ctx.clip(gp);
+  ctx.fillStyle='rgba(160,200,240,.05)';ctx.fillRect(0,0,PW,PH);
+  if(G.fill>0){
+    const by=PH-fh-fmh-3;
+    const t=Date.now()*.0025;
+    const wa=G.pouring?2.5:.8;
+    ctx.beginPath();ctx.moveTo(bx,PH-3);ctx.lineTo(PW-bx,PH-3);ctx.lineTo(PW-bx,by+fmh);
+    for(let x=PW-bx;x>=bx;x-=2){
+      const wx=(x-bx)/(PW-2*bx);
+      const wy=Math.sin(wx*Math.PI*4+t)*wa+Math.sin(wx*Math.PI*2.3+t*.7)*wa*.5;
+      ctx.lineTo(x,by+fmh+wy);
+    }
+    ctx.closePath();
+    const [br,bg,bb]=[parseInt(bc.slice(1,3),16),parseInt(bc.slice(3,5),16),parseInt(bc.slice(5,7),16)];
+    const beerG=ctx.createLinearGradient(0,by,0,PH);
+    beerG.addColorStop(0,`rgba(${Math.min(255,br+50)},${Math.min(255,bg+40)},${Math.min(255,bb+15)},.96)`);
+    beerG.addColorStop(.25,`rgba(${br},${bg},${bb},.93)`);
+    beerG.addColorStop(1,`rgba(${Math.max(0,br-25)},${Math.max(0,bg-15)},${Math.max(0,bb-8)},.98)`);
+    ctx.fillStyle=beerG;ctx.fill();
+    // Shimmers
+    ctx.strokeStyle=`rgba(${Math.min(255,br+70)},${Math.min(255,bg+55)},${Math.min(255,bb+35)},.28)`;ctx.lineWidth=.8;
+    for(let i=0;i<4;i++){const ly=by+fmh+(fh*(0.15+i*.2));if(ly<PH-3){ctx.beginPath();ctx.moveTo(bx+3,ly);ctx.lineTo(PW-bx-3,ly);ctx.stroke();}}
+    // Foam
+    if(fmh>2){
+      ctx.beginPath();
+      for(let x=bx;x<=PW-bx;x+=2){
+        const fy=by+Math.sin(x*.18+t*1.8)*2+Math.cos(x*.08+t)*1.2;
+        x===bx?ctx.moveTo(x,fy):ctx.lineTo(x,fy);
+      }
+      ctx.lineTo(PW-bx,by+fmh);ctx.lineTo(bx,by+fmh);ctx.closePath();
+      const fg=ctx.createLinearGradient(0,by-4,0,by+fmh);
+      fg.addColorStop(0,'rgba(255,255,255,.98)');fg.addColorStop(.4,'rgba(255,250,235,.9)');fg.addColorStop(1,'rgba(255,243,210,.65)');
+      ctx.fillStyle=fg;ctx.fill();
+      ctx.fillStyle='rgba(255,255,255,.55)';
+      for(let i=0;i<10;i++){
+        const bx2=bx+((i*53+Math.floor(t*12))%(PW-bx*2));
+        const by2=by+2+(i%3)*.8;
+        ctx.beginPath();ctx.arc(bx2,by2,1+(i%3)*.4,0,Math.PI*2);ctx.fill();
+      }
+    }
+    // Bubbles
+    if(Math.random()<.25&&G.fill>5){
+      pourPtcls.push({x:bx+Math.random()*(PW-bx*2),y:PH-3,r:Math.random()*2+.4,spd:Math.random()*.7+.25,op:Math.random()*.4+.15,life:1});
+    }
+    pourPtcls=pourPtcls.filter(p=>p.life>0);
+    pourPtcls.forEach(p=>{
+      p.y-=p.spd;p.life-=.014;
+      if(p.y<by+fmh){p.life=0;return;}
+      ctx.strokeStyle=`rgba(${Math.min(255,br+90)},${Math.min(255,bg+70)},${Math.min(255,bb+45)},${p.op*p.life})`;
+      ctx.lineWidth=.7;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.stroke();
+    });
+  }
+  ctx.restore();
+  // Foam zone line
+  if(!G.poured){
+    ctx.save();ctx.clip(gp);
+    ctx.setLineDash([3,3]);ctx.strokeStyle='rgba(74,124,63,.7)';ctx.lineWidth=1.3;
+    ctx.beginPath();ctx.moveTo(bx+2,fzY);ctx.lineTo(PW-bx-2,fzY);ctx.stroke();
+    ctx.setLineDash([]);ctx.restore();
+  }
+  // Pour stream
+  if(G.pouring&&G.fill<95){
+    const sx=PW/2+Math.sin(Date.now()*.009)*2.5;
+    const fillTop=PH-Math.round(G.fill*1.6)-Math.round(G.foam*1.8)-3;
+    const stG=ctx.createLinearGradient(sx-3,0,sx+3,0);
+    stG.addColorStop(0,'rgba(212,112,10,0)');stG.addColorStop(.5,'rgba(212,112,10,.65)');stG.addColorStop(1,'rgba(212,112,10,0)');
+    ctx.fillStyle=stG;ctx.fillRect(sx-3,0,6,fillTop);
+    for(let i=0;i<4;i++){
+      const ang=-Math.PI/2+(Math.random()-.5)*1.1;const dist=Math.random()*10;
+      ctx.fillStyle=`rgba(212,112,10,${Math.random()*.5})`;
+      ctx.beginPath();ctx.arc(sx+Math.cos(ang)*dist,fillTop+Math.sin(ang)*dist*.45,Math.random()*1.8+.3,0,Math.PI*2);ctx.fill();
+    }
+  }
+  // Glass outline
+  ctx.strokeStyle='rgba(180,220,255,.3)';ctx.lineWidth=1.8;ctx.stroke(gp);
+  // Shine
+  ctx.save();ctx.clip(gp);
+  const shG=ctx.createLinearGradient(tx,0,tx+12,0);
+  shG.addColorStop(0,'rgba(255,255,255,.1)');shG.addColorStop(.5,'rgba(255,255,255,.2)');shG.addColorStop(1,'rgba(255,255,255,0)');
+  ctx.fillStyle=shG;ctx.fillRect(tx,3,12,PH-6);
+  ctx.restore();
+}
+
+function startPourAnim(){
+  if(pourRAF)cancelAnimationFrame(pourRAF);
+  function f(){const c=document.getElementById('pour-canvas');if(!c){pourRAF=null;return;}drawPourFrame(c);pourRAF=requestAnimationFrame(f);}f();
+}
+function stopPourAnim(){if(pourRAF){cancelAnimationFrame(pourRAF);pourRAF=null;}const c=document.getElementById('pour-canvas');if(c)drawPourFrame(c);}
+
+// ═══════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════
+function launchApp(page){
+  initAudio();
+  document.getElementById('title').style.display='none';
+  document.getElementById('app').style.display='flex';
+  if(!G.queue.length)spawnDay();
+  showPage(page);
+  renderHUD();
+}
+
+function showPage(name){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  const pageEl=document.getElementById(`page-${name}`);
+  if(pageEl)pageEl.classList.add('active');
+  const tabEl=document.getElementById(`ntab-${name}`);
+  if(tabEl)tabEl.classList.add('active');
+  if(name==='game'&&G.station==='pour'){setTimeout(()=>{initPourCv();startPourAnim();},50);}
+  if(name!=='game'&&pourRAF)stopPourAnim();
+}
+
+// ═══════════════════════════════════════
+// AI CHAT
+// ═══════════════════════════════════════
+function handleKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();}}
+function autoResize(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,120)+'px';}
+
+async function sendMessage(){
+  const input=document.getElementById('chat-input');
+  const msg=input.value.trim();
+  if(!msg)return;
+  input.value='';input.style.height='auto';
+  addMsg(msg,'user');
+  const typingEl=addTyping();
+  try{
+    const res=await fetch('/api/chat',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({message:msg})
+    });
+    typingEl.remove();
+    if(!res.ok){addMsg("Cecil is having trouble connecting right now. Try again in a moment.",'ai');return;}
+    const data=await res.json();
+    addMsg(formatAIMsg(data.text),'ai',true);
+  }catch(e){
+    typingEl.remove();
+    addMsg("Connection issue. Please try again.",'ai');
+  }
+}
+
+function formatAIMsg(text){
+  return text
+    .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g,'<em>$1</em>')
+    .replace(/\n\n/g,'<br><br>')
+    .replace(/\n/g,'<br>');
+}
+
+function askChip(q){
+  document.getElementById('chat-input').value=q;
+  sendMessage();
+}
+
+function addMsg(content,role,isHTML=false){
+  const msgs=document.getElementById('chat-messages');
+  const el=document.createElement('div');
+  el.className=`msg ${role}`;
+  const time=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  el.innerHTML=`
+    <div class="msg-avatar">${role==='ai'?'🍺':'👤'}</div>
+    <div>
+      <div class="msg-bubble">${isHTML?content:content.replace(/</g,'&lt;')}</div>
+      <div class="msg-time">${time}</div>
+    </div>`;
+  msgs.appendChild(el);
+  msgs.scrollTop=msgs.scrollHeight;
+  return el;
+}
+
+function addTyping(){
+  const msgs=document.getElementById('chat-messages');
+  const el=document.createElement('div');
+  el.className='msg ai';
+  el.innerHTML=`<div class="msg-avatar">🍺</div><div><div class="msg-bubble"><div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div></div></div>`;
+  msgs.appendChild(el);
+  msgs.scrollTop=msgs.scrollHeight;
+  return el;
+}
+
+// ═══════════════════════════════════════
+// GAME DATA
+// ═══════════════════════════════════════
+const BEER_STYLES=[
+  {id:'lager',    name:'Lager',    icon:'🍺',color:'#D4AA3E',required_malt:'pale_malt',    required_hops:['saaz'],     temp:'ice_cold'},
+  {id:'ipa',      name:'IPA',      icon:'🟠',color:'#E8821A',required_malt:'pale_malt',    required_hops:['citra'],    temp:'chilled'},
+  {id:'stout',    name:'Stout',    icon:'⚫',color:'#2C1206',required_malt:'roast_barley', required_hops:['fuggles'],  temp:'cellar'},
+  {id:'wheat',    name:'Wheat',    icon:'🌾',color:'#F0C060',required_malt:'wheat_malt',   required_hops:['hallertau'],temp:'chilled'},
+  {id:'pale_ale', name:'Pale Ale', icon:'🟡',color:'#C8A020',required_malt:'pale_malt',    required_hops:['cascade'],  temp:'cellar'},
+];
+const MALTS=[{id:'pale_malt',name:'Pale Malt',icon:'🌾'},{id:'roast_barley',name:'Roast Barley',icon:'☕'},{id:'wheat_malt',name:'Wheat Malt',icon:'🌿'},{id:'crystal_malt',name:'Crystal Malt',icon:'💎'}];
+const HOPS=[{id:'saaz',name:'Saaz',icon:'🌱',unlock:1},{id:'citra',name:'Citra',icon:'🍋',unlock:1},{id:'cascade',name:'Cascade',icon:'🌊',unlock:1},{id:'fuggles',name:'Fuggles',icon:'🌿',unlock:1},{id:'hallertau',name:'Hallertau',icon:'⚗️',unlock:2},{id:'mosaic',name:'Mosaic',icon:'🎨',unlock:3}];
+const INFUSIONS=[{id:'none',name:'None',icon:'➖',unlock:1},{id:'citrus',name:'Citrus',icon:'🍋',unlock:1},{id:'chocolate',name:'Chocolate',icon:'🍫',unlock:1},{id:'caramel',name:'Caramel',icon:'🍮',unlock:2},{id:'coffee',name:'Coffee',icon:'☕',unlock:2},{id:'berry',name:'Berry',icon:'🍇',unlock:3}];
+const GLASSES=[{id:'pint',name:'Pint',icon:'🍺'},{id:'tulip',name:'Tulip',icon:'🥂'},{id:'mug',name:'Mug',icon:'🍵'},{id:'stein',name:'Stein',icon:'🏆'}];
+const FOAM_LVL=['none','light','medium','heavy'];
+const GARNISHES=[{id:'none',name:'None',icon:'➖'},{id:'lemon',name:'Lemon',icon:'🍋'},{id:'orange',name:'Orange',icon:'🍊'},{id:'cherry',name:'Cherry',icon:'🍒'},{id:'herbs',name:'Herbs',icon:'🌿'},{id:'salt_rim',name:'Salt Rim',icon:'🧂'}];
+const CUSTOMERS=[
+  {id:'margaret',name:'Margaret',type:'Regular',    patience:90, tip:1.2,quote:'"Another proper stout, please — and make it perfect."'},
+  {id:'dave',    name:'Dave',    type:'Casual',     patience:75, tip:1.0,quote:'"Just something cold and quick, mate."'},
+  {id:'priya',   name:'Priya',   type:'Adventurous',patience:80, tip:1.3,quote:'"Surprise me — I love trying new things!"'},
+  {id:'gordon',  name:'Gordon',  type:'Critic',     patience:60, tip:2.0,quote:'"I will be evaluating every aspect of this pint."'},
+  {id:'yuki',    name:'Yuki',    type:'Newcomer',   patience:100,tip:0.9,quote:'"It\'s my first time — be gentle!"'},
+];
+const MSGS={5:["Perfect pint! Absolutely legendary.","Flawless. I'm a regular now!","Outstanding — 10/10."],4:["Really great, thanks!","That hit the spot.","Almost perfect — great work!"],3:["Not bad, I'll take it.","Decent enough.","It'll do."],2:["Something's off...","Not quite right.","Could be better."],1:["That's wrong on every level.","Very disappointed.","Not what I asked for."]};
+const MOODS={5:'excited',4:'happy',3:'idle',2:'stern',1:'stern'};
+
+// ═══════════════════════════════════════
+// GAME STATE
+// ═══════════════════════════════════════
+const G={
+  day:1,coins:50,rep:0,maxRep:500,served:0,dayStars:[],tier:1,
+  cust:null,order:null,station:'order',queue:[],timers:{},
+  malt:null,hops:[],inf:'none',timerScore:0,brewLocked:false,brewScore:0,
+  glass:null,fill:0,foam:0,pouring:false,poured:false,pourScore:0,
+  garnish:'none',presScore:0,
+};
+
+function genOrder(){
+  const t=G.tier;
+  const style=BEER_STYLES[Math.floor(Math.random()*Math.min(BEER_STYLES.length,2+t))];
+  const infs=INFUSIONS.filter(i=>i.unlock<=t);const inf=infs[Math.floor(Math.random()*infs.length)];
+  const gls=GLASSES.slice(0,Math.min(GLASSES.length,1+t));const glass=gls[Math.floor(Math.random()*gls.length)];
+  const foam=FOAM_LVL[Math.floor(Math.random()*Math.min(FOAM_LVL.length,2+Math.floor(t/2)))];
+  const garns=GARNISHES.slice(0,Math.min(GARNISHES.length,2+t));const garnish=garns[Math.floor(Math.random()*garns.length)];
+  return{style,inf,glass,foam,garnish,temp:style.temp,ts:Date.now()};
+}
+
+function spawnDay(){
+  const count=Math.min(3+G.day,CUSTOMERS.length);
+  G.queue=[...CUSTOMERS].sort(()=>Math.random()-.5).slice(0,count).map(c=>({...c,order:genOrder(),pat:c.patience,served:false,score:null}));
+  renderCustList();if(G.queue.length)selCust(G.queue[0]);startTimers();
+}
+
+function startTimers(){
+  G.queue.forEach(c=>{
+    clearInterval(G.timers[c.id]);
+    G.timers[c.id]=setInterval(()=>{
+      if(c.served){clearInterval(G.timers[c.id]);return;}
+      c.pat=Math.max(0,c.pat-1);
+      updatePat(c);
+      if(c.pat<=0){
+        clearInterval(G.timers[c.id]);c.served=true;c.score=1;
+        G.dayStars.push(1);snd('angry');
+        notify(`${c.name} walked out! 😞`);renderCustList();checkEOD();
+      }
+    },1000);
+  });
+}
+
+function updatePat(c){
+  const el=document.getElementById(`pat-${c.id}`);if(!el)return;
+  const pct=(c.pat/c.patience)*100;el.style.width=pct+'%';
+  el.style.background=pct>60?'var(--hop)':pct>30?'var(--amber-lt)':'var(--red)';
+}
+
+function selCust(c){
+  if(c.served)return;G.cust=c;G.order=c.order;
+  resetBrew();resetPour();G.garnish='none';
+  renderCustList();switchStation('order');snd('tap');
+}
+
+function renderCustList(){
+  const el=document.getElementById('cust-list');
+  el.innerHTML=G.queue.map(c=>`
+    <div class="cust-card${G.cust?.id===c.id?' active':''}${c.served?' done':''}" onclick="selCust(G.queue.find(q=>q.id==='${c.id}'))">
+      <canvas class="cc-canvas" id="cc-${c.id}" width="72" height="72"></canvas>
+      <div class="cc-name">${c.name}</div>
+      <div class="cc-type">${c.type}</div>
+      <div class="pat-wrap"><div class="pat-bar" id="pat-${c.id}" style="width:${c.served?0:(c.pat/c.patience)*100}%;background:var(--hop)"></div></div>
+      ${c.served&&c.score?`<div class="cc-score">${'⭐'.repeat(c.score)}</div>`:''}
+    </div>`).join('');
+  G.queue.forEach(c=>{const cv=document.getElementById(`cc-${c.id}`);if(cv)drawChar(cv,c.id,c.served&&c.score?MOODS[c.score]:'idle');});
+}
+
+// ── STATIONS ──
+function switchStation(name){
+  G.station=name;
+  document.querySelectorAll('.stab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(`stab-${name}`).classList.add('active');
+  if(pourRAF&&name!=='pour')stopPourAnim();
+  renderStation();
+  if(name==='pour')setTimeout(()=>{initPourCv();attachPour();startPourAnim();},40);
+}
+
+function renderStation(){
+  const el=document.getElementById('scontent');
+  if(!G.cust){el.innerHTML='<div class="no-cust">👈 Select a customer to begin</div>';return;}
+  switch(G.station){
+    case'order':el.innerHTML=renderOrder();setTimeout(()=>{const cv=document.getElementById('portrait-cv');if(cv)drawChar(cv,G.cust.id,'idle');},30);break;
+    case'brew': el.innerHTML=renderBrew();break;
+    case'pour': el.innerHTML=renderPour();setTimeout(()=>{initPourCv();attachPour();startPourAnim();},30);break;
+    case'serve':el.innerHTML=renderServe();break;
+  }
+}
+
+function renderOrder(){
+  const o=G.order,c=G.cust;
+  return`<div class="cust-intro"><canvas id="portrait-cv" width="65" height="65" style="border-radius:10px;flex-shrink:0"></canvas><div><div style="display:flex;align-items:center;gap:.4rem"><div class="intro-name">${c.name}</div><div class="intro-type">${c.type}</div></div><div class="intro-quote">${c.quote}</div></div></div>
+  <div style="font-size:.65rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--amber);font-weight:700;margin:.6rem 0 .3rem">🎯 Their Order</div>
+  <div class="order-grid">
+    <div class="oattr"><div class="oattr-lbl">Beer Style</div><div class="oattr-ico">${o.style.icon}</div><div class="oattr-val">${o.style.name}</div></div>
+    <div class="oattr"><div class="oattr-lbl">Infusion</div><div class="oattr-ico">${o.inf.icon}</div><div class="oattr-val">${o.inf.name}</div></div>
+    <div class="oattr"><div class="oattr-lbl">Glass</div><div class="oattr-ico">${o.glass.icon}</div><div class="oattr-val">${o.glass.name}</div></div>
+    <div class="oattr"><div class="oattr-lbl">Foam</div><div class="oattr-ico">💨</div><div class="oattr-val">${o.foam.charAt(0).toUpperCase()+o.foam.slice(1)}</div></div>
+    <div class="oattr"><div class="oattr-lbl">Temperature</div><div class="oattr-ico">🌡️</div><div class="oattr-val">${o.temp.replace('_',' ')}</div></div>
+    <div class="oattr"><div class="oattr-lbl">Garnish</div><div class="oattr-ico">${o.garnish.icon}</div><div class="oattr-val">${o.garnish.name}</div></div>
+  </div>
+  <div class="act-row"><button class="btn-p" onclick="switchStation('brew')">Go to Brew →</button></div>`;
+}
+
+// Brew
+let brewRunning=false,brewPos=0,brewDir=1,brewRAF=null;
+function resetBrew(){G.malt=null;G.hops=[];G.inf='none';G.timerScore=0;G.brewLocked=false;G.brewScore=0;brewRunning=false;cancelAnimationFrame(brewRAF);brewPos=0;}
+function renderBrew(){
+  const o=G.order,t=G.tier;
+  const mH=MALTS.map(m=>`<button class="ing${G.malt===m.id?' sel':''}" onclick="sMalt('${m.id}')"><span class="ing-ico">${m.icon}</span>${m.name}</button>`).join('');
+  const hH=HOPS.filter(h=>h.unlock<=t).map(h=>`<button class="ing${G.hops.includes(h.id)?' sel':''}" onclick="tHop('${h.id}')"><span class="ing-ico">${h.icon}</span>${h.name}</button>`).join('');
+  const iH=INFUSIONS.filter(i=>i.unlock<=t).map(i=>`<button class="ing${G.inf===i.id?' sel':''}" onclick="sInf('${i.id}')"><span class="ing-ico">${i.icon}</span>${i.name}</button>`).join('');
+  const mo=G.malt===o.style.required_malt,ho=o.style.required_hops.every(h=>G.hops.includes(h)),io=G.inf===o.inf.id;
+  const tLbl=!G.brewLocked?'CLICK TO START':G.timerScore>=80?'🟢 Perfect!':G.timerScore>=60?'🟡 Good':'🔴 Missed';
+  return`<div class="brew-grid">
+    <div class="bsec"><div class="bsec-title">🌾 Malt</div><div class="inst">Required for ${o.style.name}</div><div class="ing-grid">${mH}</div></div>
+    <div class="bsec"><div class="bsec-title">🌿 Hops</div><div class="inst">Select the right variety</div><div class="ing-grid">${hH}</div></div>
+    <div class="bsec"><div class="bsec-title">✨ Infusion</div><div class="inst">Match the order</div><div class="ing-grid">${iH}</div></div>
+    <div class="bsec"><div class="bsec-title">⏱️ Brew Timer</div><div class="inst">Click to start, click again in the green!</div>
+      <div class="timer-wrap" id="brew-timer" onclick="hitTimer()">
+        <div class="tz tz-bad" style="left:0;width:25%"></div>
+        <div class="tz tz-ok" style="left:25%;width:15%"></div>
+        <div class="tz tz-perf" style="left:40%;width:20%"></div>
+        <div class="tz tz-ok" style="left:60%;width:15%"></div>
+        <div class="tz tz-bad" style="left:75%;width:25%"></div>
+        <div class="t-needle" id="brew-needle" style="left:${brewPos}%"></div>
+        <div class="t-lbl">${tLbl}</div>
+      </div>
+      ${G.brewLocked?`<div style="font-size:.7rem;color:var(--hop-lt);text-align:center;margin-top:.35rem">Timer: ${G.timerScore}%</div>`:''}
+    </div></div>
+  <div class="checklist">
+    <span class="ck ${mo?'ck-ok':G.malt?'ck-bad':'ck-req'}">${mo?'✅':G.malt?'❌':'?'} Malt</span>
+    <span class="ck ${ho?'ck-ok':G.hops.length?'ck-bad':'ck-req'}">${ho?'✅':G.hops.length?'❌':'?'} Hops</span>
+    <span class="ck ${io?'ck-ok':G.inf!=='none'?'ck-bad':'ck-req'}">${io?'✅':G.inf!=='none'?'❌':'?'} Infusion</span>
+    <span class="ck ${G.brewLocked?(G.timerScore>=60?'ck-ok':'ck-bad'):'ck-req'}">${G.brewLocked?G.timerScore+'%':'?'} Timer</span>
+  </div>
+  <div class="act-row">
+    <button class="btn-p" onclick="lockBrew()" ${G.brewLocked?'disabled':''}>🔒 Lock Brew</button>
+    <button class="btn-p" onclick="switchStation('pour')" ${!G.brewLocked?'disabled':''}>Pour →</button>
+  </div>`;
+}
+function sMalt(id){G.malt=id;snd('tap');renderStation();}
+function tHop(id){G.hops.includes(id)?G.hops=G.hops.filter(h=>h!==id):G.hops.push(id);snd('tap');renderStation();}
+function sInf(id){G.inf=id;snd('tap');renderStation();}
+function hitTimer(){
+  if(G.brewLocked)return;
+  if(!brewRunning){
+    brewRunning=true;const spd=.65+G.day*.07;
+    function t(){if(!brewRunning)return;brewPos+=brewDir*spd;if(brewPos>=100){brewPos=100;brewDir=-1;}if(brewPos<=0){brewPos=0;brewDir=1;}const n=document.getElementById('brew-needle');if(n)n.style.left=brewPos+'%';brewRAF=requestAnimationFrame(t);}t();return;
+  }
+  brewRunning=false;cancelAnimationFrame(brewRAF);
+  const p=brewPos;
+  G.timerScore=p>=40&&p<=60?100:(p>=25&&p<40)||(p>60&&p<=75)?70:30;
+  G.brewLocked=true;snd('brewLock');renderStation();
+}
+function lockBrew(){
+  if(!G.brewLocked){notify('⚠️ Hit the brew timer first!');return;}
+  const o=G.order;
+  const ms=G.malt===o.style.required_malt?100:0;
+  const hs=o.style.required_hops.every(h=>G.hops.includes(h))?100:G.hops.length?40:0;
+  const is=G.inf===o.inf.id?100:G.inf!=='none'?20:(o.inf.id==='none'?100:0);
+  G.brewScore=Math.round(ms*.4+hs*.3+is*.2+G.timerScore*.1);
+  snd('brewLock');notify(`🍵 Brew locked! ${G.brewScore}%`);switchStation('pour');
+}
+
+// Pour
+function resetPour(){G.glass=null;G.fill=0;G.foam=0;G.pouring=false;G.poured=false;G.pourScore=0;pourPtcls=[];}
+function initPourCv(){const c=document.getElementById('pour-canvas');if(c){c.width=PW;c.height=PH;drawPourFrame(c);}}
+function renderPour(){
+  const o=G.order;
+  const gH=GLASSES.map(gl=>`<button class="gl-btn${G.glass===gl.id?' sel':''}" onclick="sGlass('${gl.id}')"><span class="gl-ico">${gl.icon}</span>${gl.name}</button>`).join('');
+  const fb=getPFb();
+  return`<div class="pour-wrap">
+    <div class="glass-list"><div style="font-size:.62rem;text-transform:uppercase;letter-spacing:1px;color:var(--amber);font-weight:700;margin-bottom:.3rem">Glass</div><div class="inst" style="font-size:.62rem">Need: ${o.glass.name}</div>${gH}</div>
+    <div class="pour-center">
+      <div class="inst">Hold to pour — release in the 🟢 zone!</div>
+      <canvas id="pour-canvas" width="110" height="180" style="border-radius:6px;display:block"></canvas>
+      <div class="fill-ind">Fill: ${Math.round(G.fill)}% · Foam: ${Math.round(G.foam)}%</div>
+      <button class="pour-btn" id="pour-btn" ${G.poured?'disabled':''}>${G.poured?'✅ Poured!':'🍺 HOLD TO POUR'}</button>
+      <div class="pour-fb" style="color:${fb.color}">${fb.text}</div>
+      ${G.poured?`<div style="font-size:.7rem;color:var(--hop-lt);text-align:center">Pour Score: ${G.pourScore}%</div>`:''}
+    </div></div>
+  <div class="act-row"><button class="btn-p" onclick="switchStation('serve')" ${!G.poured||!G.glass?'disabled':''}>Serve →</button></div>`;
+}
+let _stopFn=null,_pourIv=null;
+function attachPour(){
+  const btn=document.getElementById('pour-btn');
+  if(!btn||G.poured)return;
+  if(_stopFn){window.removeEventListener('mouseup',_stopFn);window.removeEventListener('touchend',_stopFn);_stopFn=null;}
+  if(_pourIv){clearInterval(_pourIv);_pourIv=null;}
+  const start=()=>{
+    if(G.poured||G.pouring||G.fill>=95)return;
+    G.pouring=true;snd('pour');
+    _pourIv=setInterval(()=>{
+      if(!G.pouring||G.fill>=95){stop();return;}
+      G.fill=Math.min(95,G.fill+.95);
+      if(G.fill>70)G.foam=Math.min(50,G.foam+.65);
+    },50);
+  };
+  const stop=()=>{
+    if(!G.pouring)return;
+    G.pouring=false;clearInterval(_pourIv);_pourIv=null;
+    if(G.fill>5){
+      G.poured=true;calcPour();snd('pourStop');
+      const pb=document.getElementById('pour-btn');
+      if(pb){pb.disabled=true;pb.textContent='Poured!';}
+      const fb=getPFb();
+      const fbEl=document.querySelector('.pour-fb');
+      if(fbEl){fbEl.textContent=fb.text;fbEl.style.color=fb.color;}
+      const fi=document.querySelector('.fill-ind');
+      if(fi)fi.textContent='Fill: '+Math.round(G.fill)+'% · Foam: '+Math.round(G.foam)+'%';
+      if(!document.getElementById('pour-score-lbl')){
+        const d=document.createElement('div');d.id='pour-score-lbl';
+        d.style.cssText='font-size:.7rem;color:var(--hop-lt);text-align:center;margin-top:.2rem';
+        d.textContent='Pour Score: '+G.pourScore+'%';
+        const pc=document.querySelector('.pour-center');if(pc)pc.appendChild(d);
+      }
+      document.querySelectorAll('.act-row .btn-p').forEach(b=>{if(b.textContent.includes('Serve')&&G.glass)b.disabled=false;});
+    }
+  };
+  _stopFn=stop;
+  btn.addEventListener('mousedown',start);
+  btn.addEventListener('touchstart',function(e){e.preventDefault();start();},{passive:false});
+  window.addEventListener('mouseup',stop);
+  window.addEventListener('touchend',stop);
+}
+function getPFb(){
+  if(!G.poured)return{text:'',color:'transparent'};
+  if(G.pourScore>=90)return{text:'🎉 Perfect Pour!',color:'var(--hop-lt)'};
+  if(G.pourScore>=70)return{text:'👍 Good Pour!',color:'var(--amber-lt)'};
+  if(G.pourScore>=50)return{text:'😐 Acceptable',color:'var(--gold)'};
+  return{text:'💧 Off target',color:'#F08878'};
+}
+function sGlass(id){
+  G.glass=id;snd('tap');
+  // Update glass button states without nuking the whole station
+  document.querySelectorAll('.gl-btn').forEach(b=>{
+    b.classList.toggle('sel', b.getAttribute('onclick').includes("'" + id + "'"));
+  });
+  // Enable serve button if pour is done
+  if(G.poured){
+    document.querySelectorAll('.act-row .btn-p').forEach(b=>{if(b.textContent.includes('Serve'))b.disabled=false;});
+  }
+}
+function calcPour(){
+  const o=G.order,ft={none:0,light:8,medium:20,heavy:35},tg=ft[o.foam];
+  const fs=G.fill>=78&&G.fill<=92?100:G.fill>=65?70:G.fill>92?60:40;
+  const fd=Math.abs(G.foam-tg),fms=fd<5?100:fd<12?70:fd<20?40:10;
+  const gm=G.glass===o.glass.id?100:20;
+  G.pourScore=Math.round(fs*.4+fms*.4+gm*.2);
+}
+
+// Serve
+function renderServe(){
+  const o=G.order,c=G.cust;
+  const gH=GARNISHES.map(g=>`<button class="garn-btn${G.garnish===g.id?' sel':''}" onclick="sGarn('${g.id}')"><span class="garn-ico">${g.icon}</span>${g.name}</button>`).join('');
+  const gl=GLASSES.find(g=>g.id===G.glass)||o.glass;
+  return`<div class="serve-prev"><div style="font-size:2.2rem">${gl.icon}</div><div style="font-size:.8rem;color:var(--text-dim);line-height:1.8"><strong style="color:var(--text-bright)">${o.style.name}</strong>${o.inf.id!=='none'?' + '+o.inf.name:''}<br>Glass: ${gl.name} · Foam: ${o.foam}<br>Garnish: ${GARNISHES.find(g=>g.id===G.garnish)?.name||'—'}<br><span style="color:var(--amber-lt)">For: ${c.name}</span></div></div>
+  <div style="font-size:.65rem;text-transform:uppercase;letter-spacing:1px;color:var(--amber);font-weight:700;margin-bottom:.45rem">🎨 Garnish</div>
+  <div class="garn-grid">${gH}</div>
+  <div class="checklist">
+    <span class="ck ${G.brewLocked?'ck-ok':'ck-req'}">${G.brewLocked?'✅':'❌'} Brew</span>
+    <span class="ck ${G.poured?'ck-ok':'ck-req'}">${G.poured?'✅':'❌'} Pour</span>
+    <span class="ck ${G.garnish===o.garnish.id?'ck-ok':'ck-bad'}">Garnish: ${G.garnish===o.garnish.id?'✅':'⚠️'}</span>
+  </div>
+  <button class="btn-serve" onclick="serveOrder()" ${!G.brewLocked||!G.poured?'disabled':''}>🍺 SERVE TO ${c.name.toUpperCase()}!</button>`;
+}
+function sGarn(id){G.garnish=id;snd('tap');renderStation();}
+
+// Scoring
+function serveOrder(){
+  const o=G.order,c=G.cust;if(!c||!o)return;
+  const go=G.garnish===o.garnish.id,glo=G.glass===o.glass.id;
+  G.presScore=Math.round((go?60:10)+(glo?40:0));
+  const el=(Date.now()-o.ts)/1000;
+  const ss=el<30?100:el<60?80:el<90?60:40;
+  const fp=Math.round(G.brewScore*.4+G.pourScore*.3+G.presScore*.2+ss*.1);
+  const stars=fp>=95?5:fp>=82?4:fp>=65?3:fp>=45?2:1;
+  const coins=Math.round(50*stars*c.tip);const rep=stars*20;
+  c.served=true;c.score=stars;G.coins+=coins;G.rep=Math.min(G.maxRep,G.rep+rep);G.served++;G.dayStars.push(stars);
+  clearInterval(G.timers[c.id]);
+  const cv=document.getElementById(`cc-${c.id}`);if(cv)drawChar(cv,c.id,MOODS[stars]);
+  stars>=5?snd('perfect'):stars>=3?snd('star'):snd('angry');setTimeout(()=>snd('coin'),180);
+  const msg=MSGS[stars][Math.floor(Math.random()*MSGS[stars].length)];
+  document.getElementById('sc-name').textContent=`${c.name}'s Order!`;
+  document.getElementById('sc-stars').textContent='⭐'.repeat(stars)+'☆'.repeat(5-stars);
+  document.getElementById('sc-brew').textContent=G.brewScore+'%';
+  document.getElementById('sc-pour').textContent=G.pourScore+'%';
+  document.getElementById('sc-pres').textContent=G.presScore+'%';
+  document.getElementById('sc-speed').textContent=ss+'%';
+  document.getElementById('sc-total').textContent=`+💰${coins} · +⭐${rep} rep`;
+  document.getElementById('sc-msg').textContent=`"${msg}"`;
+  document.getElementById('score-modal').classList.add('show');
+  renderHUD();renderCustList();snd('serve');
+}
+function closeScore(){
+  document.getElementById('score-modal').classList.remove('show');
+  stopPourAnim();resetBrew();resetPour();G.garnish='none';checkEOD();
+  const next=G.queue.find(c=>!c.served);
+  if(next)selCust(next);else switchStation('order');
+}
+function checkEOD(){if(G.queue.every(c=>c.served))setTimeout(showEOD,500);}
+function showEOD(){
+  stopPourAnim();
+  const avg=G.dayStars.length?(G.dayStars.reduce((a,b)=>a+b,0)/G.dayStars.length).toFixed(1):'0';
+  document.getElementById('eod-sub').textContent=`Day ${G.day} Complete`;
+  document.getElementById('eod-served').textContent=G.served;
+  document.getElementById('eod-coins').textContent=G.coins;
+  document.getElementById('eod-stars').textContent=avg+'⭐';
+  const ul=document.getElementById('eod-unlock');
+  if(G.day===2){ul.style.display='block';ul.innerHTML='🌟 <strong>Hallertau hops</strong> unlocked! Find it in the Brew Station.';G.tier=2;}
+  else if(G.day===4){ul.style.display='block';ul.innerHTML='🌟 <strong>Coffee & Caramel</strong> infusions unlocked!';G.tier=3;}
+  else ul.style.display='none';
+  document.getElementById('eod-modal').classList.add('show');snd('star');
+}
+function nextDay(){
+  document.getElementById('eod-modal').classList.remove('show');
+  G.day++;G.served=0;G.dayStars=[];G.cust=null;G.order=null;G.timers={};
+  resetBrew();resetPour();G.garnish='none';
+  document.getElementById('hud-day')&&(document.getElementById('hud-day').textContent=`Day ${G.day}`);
+  spawnDay();switchStation('order');renderHUD();
+  notify(`☀️ Day ${G.day} — ${G.queue.length} customers waiting!`);
+}
+function renderHUD(){
+  document.getElementById('hud-coins').textContent=G.coins;
+  document.getElementById('hud-rep').textContent=G.rep;
+  document.getElementById('rep-fill').style.width=(G.rep/G.maxRep*100)+'%';
+}
+function notify(msg){
+  const a=document.getElementById('notifs');const el=document.createElement('div');
+  el.className='notif';el.textContent=msg;a.appendChild(el);setTimeout(()=>el.remove(),3100);
+}
+</script>
+</body>
+</html>
