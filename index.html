@@ -1087,14 +1087,20 @@ async function sendMessage(){
   addMsg(msg,'user');
   const typingEl=addTyping();
   try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{
+    const res=await fetch('/api/chat',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        model:'claude-sonnet-4-20250514',
-        max_tokens:1000,
-        system:`You are Cecil, a Master Cicerone and world-class spirits expert with 30+ years of experience. You are the AI expert inside the Pinteria beer crafting game app.
-
+      body:JSON.stringify({message:msg})
+    });
+    typingEl.remove();
+    if(!res.ok){addMsg("Cecil is having trouble connecting right now. Try again in a moment.",'ai');return;}
+    const data=await res.json();
+    addMsg(formatAIMsg(data.text),'ai',true);
+  }catch(e){
+    typingEl.remove();
+    addMsg("Connection issue. Please try again.",'ai');
+  }
+}
 You have deep expert knowledge of:
 - All beer styles (lagers, ales, IPAs, stouts, sours, wheat beers, Belgians, porters, etc.)
 - Brewing science: fermentation, hops, malts, yeasts, water chemistry, brewing techniques
