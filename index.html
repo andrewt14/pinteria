@@ -1101,34 +1101,6 @@ async function sendMessage(){
     addMsg("Connection issue. Please try again.",'ai');
   }
 }
-You have deep expert knowledge of:
-- All beer styles (lagers, ales, IPAs, stouts, sours, wheat beers, Belgians, porters, etc.)
-- Brewing science: fermentation, hops, malts, yeasts, water chemistry, brewing techniques
-- Beer history and regional traditions (German Reinheitsgebot, Belgian Trappist, British real ale, American craft, etc.)
-- Food and beer pairing
-- Whisky/whiskey (Scotch single malt, bourbon, rye, Irish, Japanese)
-- Wine (regions, varietals, winemaking, natural wine, champagne)
-- Spirits (tequila, mezcal, rum, gin, vodka, cognac, armagnac)
-- Cocktails and mixology
-- Sensory evaluation and tasting notes
-- IBU, ABV, SRM colour scales
-- Certification knowledge (Cicerone, BJCP, Court of Master Sommeliers)
-- Current craft beer scene and notable breweries
-
-Your personality: warm, passionate, a little opinionated (in a fun way), uses rich descriptive language. You love sharing knowledge. Occasionally use relevant emoji. Keep answers focused and useful — not too long unless the question demands depth. Format with **bold** for key terms when helpful.`,
-        messages:[{role:'user',content:msg}]
-      })
-    });
-    typingEl.remove();
-    if(!res.ok){addMsg("I'm having trouble connecting right now. Please check your API setup.",'ai');return;}
-    const data=await res.json();
-    const text=data.content.map(c=>c.text||'').join('');
-    addMsg(formatAIMsg(text),'ai',true);
-  }catch(e){
-    typingEl.remove();
-    addMsg("Connection issue — make sure the API is configured. In the meantime, try asking me about any beer style and I'll answer from my vast knowledge! 🍺",'ai');
-  }
-}
 
 function formatAIMsg(text){
   return text
